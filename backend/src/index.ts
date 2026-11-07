@@ -1,13 +1,10 @@
-
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import { env } from "./config/env.js";
 import { prisma } from "./lib/prisma.js";
-
-dotenv.config();
+import authRoutes from "./modules/auth/auth.routes.js";
 
 const app = express();
-const PORT = Number(process.env.PORT) || 4000;
 
 app.use(
   cors({
@@ -18,6 +15,7 @@ app.use(
 
 app.use(express.json());
 
+// Health check
 app.get("/api/health", (_req, res) => {
   res.json({
     success: true,
@@ -25,24 +23,25 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend running at http://localhost:${PORT}`);
-});
-
 app.get("/api/health/db", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-
     res.json({
       success: true,
       database: "connected",
     });
   } catch (error) {
     console.error("Database connection failed:", error);
-
     res.status(500).json({
       success: false,
       database: "disconnected",
     });
   }
+});
+
+// Auth routes
+app.use("/api/auth", authRoutes);
+
+app.listen(env.PORT, () => {
+  console.log(`Backend running at http://localhost:${env.PORT}`);
 });

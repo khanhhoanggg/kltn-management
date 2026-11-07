@@ -1,4 +1,4 @@
-// Prisma schema cho project KLTN/CDTN
+// Prisma schema cho hệ thống quản lý KLTN/CĐTN - Khoa CNTT
 
 generator client {
   provider = "prisma-client-js"
@@ -9,8 +9,110 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Department {
+// ==================== ENUMS ====================
+
+enum RoleName {
+  ADMIN
+  GIAO_VU
+  LANH_DAO
+  GVHD
+  GVPB
+  THANH_VIEN_HD
+  THU_KY_HD
+  SINH_VIEN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+}
+
+// ==================== USER & ROLE ====================
+
+model User {
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  roles    UserRole[]
+  student  Student?
+  lecturer Lecturer?
+
+  @@map("users")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        RoleName @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  users UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId Int
+  roleId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ==================== STUDENT & LECTURER ====================
+
+model Student {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  studentCode String  @unique          // MSSV
+  className  String?                   // Lớp
+  cohort     String?                   // Khóa (ví dụ: 2021)
+  major      String?                   // Ngành
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("students")
+}
+
+model Lecturer {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  staffCode    String?  @unique        // Mã giảng viên
+  degree       String?                 // Học vị (ThS, TS...)
+  title        String?                 // Chức danh
+  department   String?                 // Bộ môn
+  maxStudents  Int      @default(15)   // Tối đa 15 SV theo quy định
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("lecturers")
+}
+
+// ==================== SEMESTER ====================
+
+model Semester {
   id        Int      @id @default(autoincrement())
-  name      String   @unique
+  name      String   // Ví dụ: "Học kỳ 1 - 2025-2026"
+  code      String   @unique // Ví dụ: "HK1-2025"
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Các mốc thời gian sẽ bổ sung sau (milestone)
+  @@map("semesters")
 }
