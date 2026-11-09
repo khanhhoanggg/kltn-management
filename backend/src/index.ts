@@ -3,6 +3,7 @@ import cors from "cors";
 import { env } from "./config/env.js";
 import { prisma } from "./lib/prisma.js";
 import authRoutes from "./modules/auth/auth.routes.js";
+import semesterRoutes from "./modules/semesters/semesters.routes.js";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.get("/api/health/db", async (_req, res) => {
 
 // Auth routes
 app.use("/api/auth", authRoutes);
+app.use("/api/semesters", semesterRoutes);
 
 app.listen(env.PORT, () => {
   console.log(`Backend running at http://localhost:${env.PORT}`);

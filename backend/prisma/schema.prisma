@@ -27,6 +27,36 @@ enum UserStatus {
   INACTIVE
   LOCKED
 }
+enum ThesisType {
+  KLTN
+  CDTN
+}
+
+enum ThesisStatus {
+  CHUA_DANG_KY          // 01
+  CHO_GVHD_XAC_NHAN     // 02
+  CHO_KHOA_GIAO         // 03
+  DANG_THUC_HIEN        // 04
+  DA_DANH_GIA_GIUA_KY   // 05
+  DA_KIEM_TRA_DEMO      // 06
+  CHO_DUYET_HO_SO       // 07
+  CHO_PHAN_BIEN         // 08
+  DU_DIEU_KIEN_BAO_VE   // 09
+  DA_BAO_VE             // 10
+  DA_LUU_HO_SO          // 11
+  KHONG_DU_DIEU_KIEN    // kết thúc sớm / bị loại
+}
+
+enum EvaluationResult {
+  DAT
+  CANH_BAO
+  KHONG_DAT
+}
+
+enum DefenseDecision {
+  CHO_BAO_VE
+  KHONG_CHO_BAO_VE
+}
 
 // ==================== USER & ROLE ====================
 
@@ -81,6 +111,7 @@ model Student {
   updatedAt  DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theses Thesis[]
 
   @@map("students")
 }
@@ -97,6 +128,8 @@ model Lecturer {
   updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supervisedTheses Thesis[] @relation("Supervisor")
+  topicSuggestions TopicSuggestion[]
 
   @@map("lecturers")
 }
@@ -113,6 +146,94 @@ model Semester {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Các mốc thời gian sẽ bổ sung sau (milestone)
+  milestones SemesterMilestone[]
+  theses     Thesis[]
   @@map("semesters")
+}
+// ==================== MILESTONE & FIELD ====================
+
+model SemesterMilestone {
+  id         Int      @id @default(autoincrement())
+  semesterId Int
+  code       String   // VD: REGISTRATION_START, MIDTERM_DEADLINE, DEFENSE_REG_DEADLINE
+  name       String   // Tên hiển thị
+  startAt    DateTime?
+  endAt      DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+
+  @@unique([semesterId, code])
+  @@map("semester_milestones")
+}
+model ResearchField {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  topicSuggestions TopicSuggestion[]
+  theses           Thesis[]
+
+  @@map("research_fields")
+}
+model TopicSuggestion {
+  id          Int      @id @default(autoincrement())
+  lecturerId  Int
+  fieldId     Int?
+  title       String
+  description String?
+  maxSlots    Int      @default(1)
+  isPublished Boolean  @default(false)
+  semesterId  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lecturer Lecturer      @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+  field    ResearchField? @relation(fields: [fieldId], references: [id])
+
+  @@map("topic_suggestions")
+}
+// ==================== THESIS (hồ sơ KLTN/CĐTN) ====================
+
+model Thesis {
+  id              Int          @id @default(autoincrement())
+  studentId       Int
+  semesterId      Int
+  supervisorId    Int?         // GVHD — null khi chưa được nhận
+  fieldId         Int?
+  type            ThesisType   // KLTN | CDTN
+  status          ThesisStatus @default(CHUA_DANG_KY)
+
+  // Thông tin đề tài
+  title           String?
+  description     String?      // Tóm tắt / mô tả ngắn
+  outlineUrl      String?      // Link / path file đề cương (BM-02)
+  isLocked        Boolean      @default(false) // BR-03: khóa sau khi Khoa giao
+
+  // Điều kiện SV (BR-01) — có thể đồng bộ từ QLSV
+  isEligible      Boolean      @default(false)
+  eligibilityNote String?
+
+  // Kết quả đánh giá giữa kỳ / demo (lưu kèm status)
+  midtermResult   EvaluationResult?
+  checkpointResult EvaluationResult?
+
+  // Quyết định giao đề tài
+  decisionCode    String?      // Số quyết định
+  decisionDate    DateTime?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  student    Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  semester   Semester       @relation(fields: [semesterId], references: [id])
+  supervisor Lecturer?      @relation("Supervisor", fields: [supervisorId], references: [id])
+  field      ResearchField? @relation(fields: [fieldId], references: [id])
+
+  // 1 SV chỉ có 1 hồ sơ / học kỳ
+  @@unique([studentId, semesterId])
+  @@map("theses")
 }
