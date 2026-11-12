@@ -73,6 +73,7 @@ model User {
   roles    UserRole[]
   student  Student?
   lecturer Lecturer?
+  notifications Notification[]
 
   @@map("users")
 }
@@ -236,4 +237,28 @@ model Thesis {
   // 1 SV chỉ có 1 hồ sơ / học kỳ
   @@unique([studentId, semesterId])
   @@map("theses")
+}
+enum NotificationType {
+  SYSTEM          // thông báo hệ thống
+  DEADLINE        // nhắc mốc thời gian
+  THESIS_STATUS   // đổi trạng thái hồ sơ
+  ASSIGNMENT      // phân công GVHD / GVPB / HĐ
+  EVALUATION      // kết quả đánh giá
+  DEFENSE         // lịch / kết quả bảo vệ
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int              // người nhận
+  type      NotificationType @default(SYSTEM)
+  title     String
+  content   String
+  link      String?          // deep link trong app, VD: /theses/12
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
 }
