@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../../lib/prisma.js";
 import { RoleName } from "@prisma/client";
+import { sendWelcomeEmail } from "../../lib/mail.js";
 import type {
   CreateLecturerInput,
   UpdateLecturerInput,
@@ -127,7 +128,7 @@ export async function createLecturer(input: CreateLecturerInput) {
 
   const passwordHash = await bcrypt.hash(input.password, 10);
 
-  return prisma.$transaction(async (tx) => {
+  const lecturer = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
         email: input.email.trim().toLowerCase(),
@@ -165,6 +166,16 @@ export async function createLecturer(input: CreateLecturerInput) {
 
     return lecturer;
   });
+
+  // Gửi email thông báo tài khoản cho giảng viên
+  sendWelcomeEmail(
+    lecturer.user.email,
+    lecturer.user.fullName,
+    "Giảng viên hướng dẫn",
+    input.password,
+  ).catch((err) => console.error("Lỗi gửi email cho giảng viên:", err));
+
+  return lecturer;
 }
 
 export async function updateLecturer(id: number, input: UpdateLecturerInput) {

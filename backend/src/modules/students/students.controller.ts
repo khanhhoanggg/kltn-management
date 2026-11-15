@@ -93,3 +93,25 @@ export async function remove(req: Request, res: Response) {
     return res.status(400).json({ success: false, message });
   }
 }
+
+export async function importExcel(req: Request, res: Response) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng đính kèm file Excel (.xlsx hoặc .xls)",
+      });
+    }
+
+    const data = await studentService.importStudentsFromExcel(req.file.path);
+    return res.json({
+      success: true,
+      message: `Nhập file Excel hoàn tất: Thành công ${data.successCount}/${data.totalProcessed} sinh viên.`,
+      data,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Lỗi xử lý file Excel";
+    return res.status(500).json({ success: false, message });
+  }
+}

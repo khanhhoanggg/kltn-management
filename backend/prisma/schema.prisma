@@ -27,24 +27,25 @@ enum UserStatus {
   INACTIVE
   LOCKED
 }
+
 enum ThesisType {
   KLTN
   CDTN
 }
 
 enum ThesisStatus {
-  CHUA_DANG_KY          // 01
-  CHO_GVHD_XAC_NHAN     // 02
-  CHO_KHOA_GIAO         // 03
-  DANG_THUC_HIEN        // 04
-  DA_DANH_GIA_GIUA_KY   // 05
-  DA_KIEM_TRA_DEMO      // 06
-  CHO_DUYET_HO_SO       // 07
-  CHO_PHAN_BIEN         // 08
-  DU_DIEU_KIEN_BAO_VE   // 09
-  DA_BAO_VE             // 10
-  DA_LUU_HO_SO          // 11
-  KHONG_DU_DIEU_KIEN    // kết thúc sớm / bị loại
+  CHUA_DANG_KY // 01
+  CHO_GVHD_XAC_NHAN // 02
+  CHO_KHOA_GIAO // 03
+  DANG_THUC_HIEN // 04
+  DA_DANH_GIA_GIUA_KY // 05
+  DA_KIEM_TRA_DEMO // 06
+  CHO_DUYET_HO_SO // 07
+  CHO_PHAN_BIEN // 08
+  DU_DIEU_KIEN_BAO_VE // 09
+  DA_BAO_VE // 10
+  DA_LUU_HO_SO // 11
+  KHONG_DU_DIEU_KIEN // kết thúc sớm / bị loại
 }
 
 enum EvaluationResult {
@@ -70,10 +71,14 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  roles    UserRole[]
-  student  Student?
-  lecturer Lecturer?
-  notifications Notification[]
+  roles                  UserRole[]
+  student                Student?
+  lecturer               Lecturer?
+  notifications          Notification[]
+  changeRequestsCreated  ThesisChangeRequest[] @relation("ChangeRequester")
+  changeRequestsReviewed ThesisChangeRequest[] @relation("ChangeReviewer")
+  passwordResetTokens    PasswordResetToken[]
+  refreshTokens          RefreshToken[]
 
   @@map("users")
 }
@@ -102,35 +107,39 @@ model UserRole {
 // ==================== STUDENT & LECTURER ====================
 
 model Student {
-  id         Int      @id @default(autoincrement())
-  userId     Int      @unique
-  studentCode String  @unique          // MSSV
-  className  String?                   // Lớp
-  cohort     String?                   // Khóa (ví dụ: 2021)
-  major      String?                   // Ngành
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  studentCode String   @unique // MSSV
+  className   String? // Lớp
+  cohort      String? // Khóa (ví dụ: 2021)
+  major       String? // Ngành
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   theses Thesis[]
 
   @@map("students")
 }
 
 model Lecturer {
-  id           Int      @id @default(autoincrement())
-  userId       Int      @unique
-  staffCode    String?  @unique        // Mã giảng viên
-  degree       String?                 // Học vị (ThS, TS...)
-  title        String?                 // Chức danh
-  department   String?                 // Bộ môn
-  maxStudents  Int      @default(15)   // Tối đa 15 SV theo quy định
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  staffCode   String?  @unique // Mã giảng viên
+  degree      String? // Học vị (ThS, TS...)
+  title       String? // Chức danh
+  department  String? // Bộ môn
+  maxStudents Int      @default(15) // Tối đa 15 SV theo quy định
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  supervisedTheses Thesis[] @relation("Supervisor")
-  topicSuggestions TopicSuggestion[]
+  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supervisedTheses         Thesis[]              @relation("Supervisor")
+  topicSuggestions         TopicSuggestion[]
+  proposedSupervisedTheses ThesisChangeRequest[] @relation("NewSupervisor")
+  reviewerAssignments      ReviewerAssignment[]  @relation("Reviewer")
+  councilMemberships       CouncilMember[]
+  councilScores            CouncilScore[]
 
   @@map("lecturers")
 }
@@ -139,7 +148,7 @@ model Lecturer {
 
 model Semester {
   id        Int      @id @default(autoincrement())
-  name      String   // Ví dụ: "Học kỳ 1 - 2025-2026"
+  name      String // Ví dụ: "Học kỳ 1 - 2025-2026"
   code      String   @unique // Ví dụ: "HK1-2025"
   startDate DateTime
   endDate   DateTime
@@ -149,25 +158,29 @@ model Semester {
 
   milestones SemesterMilestone[]
   theses     Thesis[]
+  councils   DefenseCouncil[]
+
   @@map("semesters")
 }
+
 // ==================== MILESTONE & FIELD ====================
 
 model SemesterMilestone {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   semesterId Int
-  code       String   // VD: REGISTRATION_START, MIDTERM_DEADLINE, DEFENSE_REG_DEADLINE
-  name       String   // Tên hiển thị
+  code       String // VD: REGISTRATION_START, MIDTERM_DEADLINE, DEFENSE_REG_DEADLINE
+  name       String // Tên hiển thị
   startAt    DateTime?
   endAt      DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   semester Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
   @@unique([semesterId, code])
   @@map("semester_milestones")
 }
+
 model ResearchField {
   id          Int      @id @default(autoincrement())
   name        String   @unique
@@ -180,6 +193,7 @@ model ResearchField {
 
   @@map("research_fields")
 }
+
 model TopicSuggestion {
   id          Int      @id @default(autoincrement())
   lecturerId  Int
@@ -192,68 +206,78 @@ model TopicSuggestion {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  lecturer Lecturer      @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+  lecturer Lecturer       @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
   field    ResearchField? @relation(fields: [fieldId], references: [id])
 
   @@map("topic_suggestions")
 }
+
 // ==================== THESIS (hồ sơ KLTN/CĐTN) ====================
 
 model Thesis {
-  id              Int          @id @default(autoincrement())
-  studentId       Int
-  semesterId      Int
-  supervisorId    Int?         // GVHD — null khi chưa được nhận
-  fieldId         Int?
-  type            ThesisType   // KLTN | CDTN
-  status          ThesisStatus @default(CHUA_DANG_KY)
+  id           Int          @id @default(autoincrement())
+  studentId    Int
+  semesterId   Int
+  supervisorId Int? // GVHD — null khi chưa được nhận
+  fieldId      Int?
+  type         ThesisType // KLTN | CDTN
+  status       ThesisStatus @default(CHUA_DANG_KY)
 
   // Thông tin đề tài
-  title           String?
-  description     String?      // Tóm tắt / mô tả ngắn
-  outlineUrl      String?      // Link / path file đề cương (BM-02)
-  isLocked        Boolean      @default(false) // BR-03: khóa sau khi Khoa giao
+  title       String?
+  description String? // Tóm tắt / mô tả ngắn
+  outlineUrl  String? // Link / path file đề cương (BM-02)
+  isLocked    Boolean @default(false) // BR-03: khóa sau khi Khoa giao
 
   // Điều kiện SV (BR-01) — có thể đồng bộ từ QLSV
-  isEligible      Boolean      @default(false)
+  isEligible      Boolean @default(false)
   eligibilityNote String?
 
   // Kết quả đánh giá giữa kỳ / demo (lưu kèm status)
-  midtermResult   EvaluationResult?
+  midtermResult    EvaluationResult?
   checkpointResult EvaluationResult?
 
   // Quyết định giao đề tài
-  decisionCode    String?      // Số quyết định
-  decisionDate    DateTime?
+  decisionCode String? // Số quyết định
+  decisionDate DateTime?
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   student    Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
   semester   Semester       @relation(fields: [semesterId], references: [id])
   supervisor Lecturer?      @relation("Supervisor", fields: [supervisorId], references: [id])
   field      ResearchField? @relation(fields: [fieldId], references: [id])
 
+  changeRequests     ThesisChangeRequest[]
+  supervisionLogs    SupervisionLog[]
+  midtermEvaluation  MidtermEvaluation?
+  checkpointDemo     CheckpointDemo?
+  defenseSubmission  DefenseSubmission?
+  reviewerAssignment ReviewerAssignment?
+  councilAssignment  CouncilThesisAssignment?
+
   // 1 SV chỉ có 1 hồ sơ / học kỳ
   @@unique([studentId, semesterId])
   @@map("theses")
 }
+
 enum NotificationType {
-  SYSTEM          // thông báo hệ thống
-  DEADLINE        // nhắc mốc thời gian
-  THESIS_STATUS   // đổi trạng thái hồ sơ
-  ASSIGNMENT      // phân công GVHD / GVPB / HĐ
-  EVALUATION      // kết quả đánh giá
-  DEFENSE         // lịch / kết quả bảo vệ
+  SYSTEM // thông báo hệ thống
+  DEADLINE // nhắc mốc thời gian
+  THESIS_STATUS // đổi trạng thái hồ sơ
+  ASSIGNMENT // phân công GVHD / GVPB / HĐ
+  EVALUATION // kết quả đánh giá
+  DEFENSE // lịch / kết quả bảo vệ
 }
 
 model Notification {
   id        Int              @id @default(autoincrement())
-  userId    Int              // người nhận
+  userId    Int // người nhận
   type      NotificationType @default(SYSTEM)
   title     String
   content   String
-  link      String?          // deep link trong app, VD: /theses/12
+  link      String? // deep link trong app, VD: /theses/12
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
 
@@ -261,4 +285,254 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+enum ChangeType {
+  CHANGE_TOPIC // Đổi tên / nội dung đề tài
+  CHANGE_SUPERVISOR // Đổi GVHD
+  BOTH // Đổi cả hai
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  CHO_DUYET
+  DA_DUYET
+  YEU_CAU_CHINH_SUA
+  BI_LOAI
+}
+
+enum CouncilRole {
+  CHU_TICH
+  THU_KY
+  UY_VIEN
+}
+
+enum CouncilStatus {
+  CHUAN_BI
+  DANG_DIEN_RA
+  DA_KET_THUC
+}
+
+// ==================== GIAI ĐOẠN 2: TIẾN ĐỘ & KIỂM SOÁT ====================
+
+model ThesisChangeRequest {
+  id              Int           @id @default(autoincrement())
+  thesisId        Int
+  requestedById   Int
+  changeType      ChangeType
+  newTitle        String?
+  newDescription  String?
+  newSupervisorId Int?
+  reason          String
+  fileUrl         String? // Đơn scan có chữ ký
+  status          RequestStatus @default(PENDING)
+  responseNote    String?
+  reviewedById    Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  thesis        Thesis    @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  requestedBy   User      @relation("ChangeRequester", fields: [requestedById], references: [id])
+  reviewedBy    User?     @relation("ChangeReviewer", fields: [reviewedById], references: [id])
+  newSupervisor Lecturer? @relation("NewSupervisor", fields: [newSupervisorId], references: [id])
+
+  @@map("thesis_change_requests")
+}
+
+model SupervisionLog {
+  id                   Int       @id @default(autoincrement())
+  thesisId             Int
+  meetingDate          DateTime
+  content              String // Nội dung làm việc / trao đổi
+  tasksAssigned        String? // Nhiệm vụ giao cho buổi kế tiếp
+  studentNotes         String? // Phản hồi của SV
+  isConfirmedByStudent Boolean   @default(false)
+  confirmedAt          DateTime?
+  progressPercentage   Int? // Tiến độ ước tính (0 - 100%)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  thesis Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  @@map("supervision_logs")
+}
+
+model MidtermEvaluation {
+  id            Int               @id @default(autoincrement())
+  thesisId      Int               @unique
+  reportFileUrl String? // File báo cáo tiến độ giữa kỳ do SV nộp
+  submittedAt   DateTime?
+  comments      String? // Nhận xét đánh giá BM-03
+  result        EvaluationResult? // DAT | CANH_BAO | KHONG_DAT
+  evaluatedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  thesis Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  @@map("midterm_evaluations")
+}
+
+model CheckpointDemo {
+  id                    Int               @id @default(autoincrement())
+  thesisId              Int               @unique
+  demoDate              DateTime?
+  location              String? // Phòng demo hoặc link meet
+  comments              String?
+  result                EvaluationResult? // DAT | CANH_BAO | KHONG_DAT
+  canDefend             Boolean           @default(true)
+  disqualifiedRecordUrl String? // Link biên bản không cho bảo vệ nếu trượt
+  evaluatedAt           DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  thesis Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  @@map("checkpoint_demos")
+}
+
+// ==================== GIAI ĐOẠN 3: PHẢN BIỆN & BẢO VỆ ====================
+
+model DefenseSubmission {
+  id                    Int              @id @default(autoincrement())
+  thesisId              Int              @unique
+  reportFileUrl         String // File báo cáo khóa luận toàn văn
+  sourceCodeUrl         String // Link github/gitlab
+  plagiarismRate        Float // Tỷ lệ trùng lặp đạo văn (Turnitin/DoIT %)
+  plagiarismFileUrl     String? // File báo cáo kiểm tra đạo văn
+  supervisorDecision    DefenseDecision? // CHO_BAO_VE | KHONG_CHO_BAO_VE (BM-05)
+  supervisorComments    String?
+  supervisorScore       Float? // Điểm GVHD chấm (thang điểm 10)
+  supervisorSignedAt    DateTime?
+  hardCopyReceived      Boolean          @default(false) // Giáo vụ nhận bản cứng
+  hardCopyReceivedAt    DateTime?
+  facultyApprovalStatus ApprovalStatus   @default(CHO_DUYET)
+  facultyNote           String?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  thesis Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  @@map("defense_submissions")
+}
+
+model ReviewerAssignment {
+  id               Int              @id @default(autoincrement())
+  thesisId         Int              @unique
+  reviewerId       Int
+  assignedAt       DateTime         @default(now())
+  preliminaryNotes String? // Góp ý sơ bộ
+  detailedReview   String? // Nhận xét chi tiết BM-06
+  decision         DefenseDecision? // Quyết định: Cho / Không cho bảo vệ
+  reviewerScore    Float? // Điểm phản biện chấm (thang 10)
+  reviewedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  thesis   Thesis   @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  reviewer Lecturer @relation("Reviewer", fields: [reviewerId], references: [id])
+
+  @@map("reviewer_assignments")
+}
+
+model DefenseCouncil {
+  id          Int           @id @default(autoincrement())
+  semesterId  Int
+  code        String // Mã hội đồng, ví dụ: HD-01
+  name        String // Tên hội đồng
+  defenseDate DateTime?
+  location    String? // Phòng bảo vệ
+  status      CouncilStatus @default(CHUAN_BI)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  semester    Semester                  @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  members     CouncilMember[]
+  assignments CouncilThesisAssignment[]
+
+  @@map("defense_councils")
+}
+
+model CouncilMember {
+  id         Int         @id @default(autoincrement())
+  councilId  Int
+  lecturerId Int
+  role       CouncilRole // CHU_TICH | THU_KY | UY_VIEN
+  createdAt  DateTime    @default(now())
+
+  council  DefenseCouncil @relation(fields: [councilId], references: [id], onDelete: Cascade)
+  lecturer Lecturer       @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+
+  @@unique([councilId, lecturerId])
+  @@map("council_members")
+}
+
+model CouncilThesisAssignment {
+  id            Int       @id @default(autoincrement())
+  councilId     Int
+  thesisId      Int       @unique
+  orderNumber   Int? // Số thứ tự báo cáo trong ca
+  scheduledTime DateTime?
+  councilScore  Float? // Điểm trung bình của Hội đồng
+  finalScore    Float? // Điểm tổng kết cuối cùng (GVHD + GVPB + HĐ)
+  minuteNotes   String? // Ý kiến hội đồng / câu hỏi
+  minuteFileUrl String? // Biên bản BM-07 có chữ ký
+  isClosed      Boolean   @default(false) // Đã đóng hồ sơ cuối kỳ
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  council DefenseCouncil @relation(fields: [councilId], references: [id], onDelete: Cascade)
+  thesis  Thesis         @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  scores  CouncilScore[]
+
+  @@map("council_thesis_assignments")
+}
+
+model CouncilScore {
+  id           Int      @id @default(autoincrement())
+  assignmentId Int
+  lecturerId   Int // Thành viên HĐ chấm
+  score        Float // Điểm chấm BM-07
+  comments     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignment CouncilThesisAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  lecturer   Lecturer                @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, lecturerId])
+  @@map("council_scores")
+}
+
+// ==================== AUTH TOKENS ====================
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }
