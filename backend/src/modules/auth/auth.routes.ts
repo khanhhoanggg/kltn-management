@@ -1,5 +1,14 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  loginSchema,
+  refreshSchema,
+  logoutSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  changePasswordSchema,
+} from "./auth.schema.js";
 import {
   loginController,
   refreshController,
@@ -13,14 +22,14 @@ import {
 const router = Router();
 
 // Public routes
-router.post("/login", loginController);
-router.post("/refresh", refreshController);
-router.post("/logout", logoutController);
-router.post("/forgot-password", forgotPasswordController);
-router.post("/reset-password", resetPasswordController);
+router.post("/login", validate(loginSchema), loginController);
+router.post("/refresh", validate(refreshSchema), refreshController);
+router.post("/logout", validate(logoutSchema), logoutController);
+router.post("/forgot-password", validate(forgotPasswordSchema), forgotPasswordController);
+router.post("/reset-password", validate(resetPasswordSchema), resetPasswordController);
 
 // Authenticated routes
 router.get("/me", authenticate, getMeController);
-router.post("/change-password", authenticate, changePasswordController);
+router.post("/change-password", authenticate, validate(changePasswordSchema), changePasswordController);
 
 export default router;

@@ -1,6 +1,14 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  createThesisSchema,
+  updateThesisSchema,
+  setEligibilitySchema,
+  confirmSupervisorSchema,
+  assignFacultySchema,
+} from "./theses.schema.js";
 import * as controller from "./theses.controller.js";
 
 const router = Router();
@@ -14,6 +22,7 @@ router.post(
   "/",
   authenticate,
   authorize("SINH_VIEN"),
+  validate(createThesisSchema),
   controller.create,
 );
 
@@ -22,6 +31,7 @@ router.put(
   "/:id",
   authenticate,
   authorize("SINH_VIEN", "ADMIN", "GIAO_VU"),
+  validate(updateThesisSchema),
   controller.update,
 );
 
@@ -30,6 +40,7 @@ router.patch(
   "/:id/eligibility",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(setEligibilitySchema),
   controller.setEligibility,
 );
 
@@ -38,6 +49,7 @@ router.patch(
   "/:id/confirm",
   authenticate,
   authorize("GVHD"),
+  validate(confirmSupervisorSchema),
   controller.confirmBySupervisor,
 );
 
@@ -46,6 +58,7 @@ router.patch(
   "/:id/assign",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(assignFacultySchema),
   controller.assignByFaculty,
 );
 

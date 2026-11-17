@@ -70,20 +70,6 @@ export async function create(req: AuthRequest, res: Response) {
     const { semesterId, type, title, description, fieldId, supervisorId, outlineUrl } =
       req.body;
 
-    if (!semesterId || !type) {
-      return res.status(400).json({
-        success: false,
-        message: "semesterId và type (KLTN|CDTN) là bắt buộc",
-      });
-    }
-
-    if (!["KLTN", "CDTN"].includes(type)) {
-      return res.status(400).json({
-        success: false,
-        message: "type phải là KLTN hoặc CDTN",
-      });
-    }
-
     const data = await thesisService.createThesis(studentId, {
       semesterId: Number(semesterId),
       type,
@@ -139,13 +125,6 @@ export async function setEligibility(req: AuthRequest, res: Response) {
     const id = Number(req.params.id);
     const { isEligible, eligibilityNote } = req.body;
 
-    if (typeof isEligible !== "boolean") {
-      return res.status(400).json({
-        success: false,
-        message: "isEligible (boolean) là bắt buộc",
-      });
-    }
-
     const data = await thesisService.setEligibility(id, {
       isEligible,
       eligibilityNote,
@@ -177,13 +156,6 @@ export async function confirmBySupervisor(req: AuthRequest, res: Response) {
     const id = Number(req.params.id);
     const { accepted, note } = req.body;
 
-    if (typeof accepted !== "boolean") {
-      return res.status(400).json({
-        success: false,
-        message: "accepted (boolean) là bắt buộc",
-      });
-    }
-
     const data = await thesisService.confirmBySupervisor(id, lecturerId, {
       accepted,
       note,
@@ -202,13 +174,6 @@ export async function assignByFaculty(req: AuthRequest, res: Response) {
   try {
     const id = Number(req.params.id);
     const { supervisorId, decisionCode, decisionDate } = req.body;
-
-    if (!supervisorId || !decisionCode) {
-      return res.status(400).json({
-        success: false,
-        message: "supervisorId và decisionCode là bắt buộc",
-      });
-    }
 
     const data = await thesisService.assignByFaculty(id, {
       supervisorId: Number(supervisorId),

@@ -32,14 +32,6 @@ export async function submit(req: AuthRequest, res: Response) {
     const { reportFileUrl, sourceCodeUrl, plagiarismRate, plagiarismFileUrl } =
       req.body;
 
-    if (!reportFileUrl || !sourceCodeUrl || plagiarismRate === undefined) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "reportFileUrl, sourceCodeUrl và plagiarismRate là các trường bắt buộc",
-      });
-    }
-
     const data = await service.submitDefense(thesisId, studentId, {
       thesisId,
       reportFileUrl,
@@ -83,18 +75,6 @@ export async function evaluateBySupervisor(req: AuthRequest, res: Response) {
     const thesisId = Number(req.params.thesisId);
     const { supervisorScore, supervisorComments, supervisorDecision } = req.body;
 
-    if (
-      supervisorScore === undefined ||
-      !supervisorDecision ||
-      !["CHO_BAO_VE", "KHONG_CHO_BAO_VE"].includes(supervisorDecision)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "supervisorScore (0-10) và supervisorDecision (CHO_BAO_VE|KHONG_CHO_BAO_VE) là bắt buộc",
-      });
-    }
-
     const data = await service.supervisorEvaluate(thesisId, lecturerId, {
       supervisorScore: Number(supervisorScore),
       supervisorComments,
@@ -119,18 +99,6 @@ export async function reviewByFaculty(req: AuthRequest, res: Response) {
     const thesisId = Number(req.params.thesisId);
     const { hardCopyReceived, facultyApprovalStatus, facultyNote } = req.body;
 
-    if (
-      typeof hardCopyReceived !== "boolean" ||
-      !facultyApprovalStatus ||
-      !["DA_DUYET", "YEU_CAU_CHINH_SUA", "BI_LOAI"].includes(facultyApprovalStatus)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "hardCopyReceived (boolean) và facultyApprovalStatus (DA_DUYET|YEU_CAU_CHINH_SUA|BI_LOAI) là bắt buộc",
-      });
-    }
-
     const data = await service.facultyReview(thesisId, {
       hardCopyReceived,
       facultyApprovalStatus,
@@ -139,12 +107,7 @@ export async function reviewByFaculty(req: AuthRequest, res: Response) {
 
     return res.json({
       success: true,
-      message:
-        facultyApprovalStatus === "DA_DUYET"
-          ? "Đã duyệt hồ sơ bảo vệ thành công. Sẵn sàng phân công phản biện."
-          : facultyApprovalStatus === "YEU_CAU_CHINH_SUA"
-            ? "Đã trả lại hồ sơ yêu cầu sinh viên chỉnh sửa."
-            : "Đã loại hồ sơ khỏi đợt bảo vệ.",
+      message: "Giáo vụ đã cập nhật trạng thái hồ sơ bảo vệ thành công",
       data,
     });
   } catch (error) {
@@ -154,7 +117,25 @@ export async function reviewByFaculty(req: AuthRequest, res: Response) {
   }
 }
 
-/** Xem hồ sơ bảo vệ của 1 đề tài */
+/** Lấy danh sách hồ sơ bảo vệ (có bộ lọc) */
+export async function getAll(req: AuthRequest, res: Response) {
+  try {
+    const { semesterId, facultyApprovalStatus } = req.query;
+
+    const data = await service.getAllSubmissions({
+      semesterId: semesterId ? Number(semesterId) : undefined,
+      approvalStatus: facultyApprovalStatus as string | undefined,
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Lỗi lấy danh sách hồ sơ bảo vệ";
+    return res.status(500).json({ success: false, message });
+  }
+}
+
+/** Lấy chi tiết hồ sơ bảo vệ theo thesisId */
 export async function getByThesis(req: AuthRequest, res: Response) {
   try {
     const thesisId = Number(req.params.thesisId);
@@ -170,24 +151,7 @@ export async function getByThesis(req: AuthRequest, res: Response) {
     return res.json({ success: true, data });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Lỗi lấy thông tin hồ sơ bảo vệ";
-    return res.status(500).json({ success: false, message });
-  }
-}
-
-/** Lấy danh sách toàn bộ hồ sơ bảo vệ cho Giáo vụ/Admin */
-export async function getAll(req: AuthRequest, res: Response) {
-  try {
-    const { semesterId, approvalStatus } = req.query;
-    const data = await service.getAllSubmissions({
-      semesterId: semesterId ? Number(semesterId) : undefined,
-      approvalStatus: approvalStatus as string | undefined,
-    });
-
-    return res.json({ success: true, data });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Lỗi lấy danh sách hồ sơ bảo vệ";
+      error instanceof Error ? error.message : "Lỗi lấy hồ sơ bảo vệ";
     return res.status(500).json({ success: false, message });
   }
 }

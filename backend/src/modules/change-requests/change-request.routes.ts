@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  createChangeRequestSchema,
+  reviewChangeRequestSchema,
+} from "./change-request.schema.js";
 import * as controller from "./change-request.controller.js";
 
 const router = Router();
@@ -10,6 +15,7 @@ router.post(
   "/",
   authenticate,
   authorize("SINH_VIEN"),
+  validate(createChangeRequestSchema),
   controller.createRequest,
 );
 
@@ -26,6 +32,7 @@ router.patch(
   "/:id/review",
   authenticate,
   authorize("ADMIN", "GIAO_VU", "LANH_DAO"),
+  validate(reviewChangeRequestSchema),
   controller.reviewRequest,
 );
 

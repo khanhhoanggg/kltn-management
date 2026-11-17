@@ -13,14 +13,6 @@ import {
 export async function loginController(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email và mật khẩu là bắt buộc",
-      });
-    }
-
     const result = await login({ email, password });
 
     return res.json({
@@ -41,14 +33,6 @@ export async function loginController(req: Request, res: Response) {
 export async function refreshController(req: Request, res: Response) {
   try {
     const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      return res.status(400).json({
-        success: false,
-        message: "refreshToken là bắt buộc",
-      });
-    }
-
     const result = await refreshAccessToken(refreshToken);
 
     return res.json({
@@ -86,14 +70,6 @@ export async function logoutController(req: Request, res: Response) {
 export async function forgotPasswordController(req: Request, res: Response) {
   try {
     const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email là bắt buộc",
-      });
-    }
-
     const result = await forgotPassword(email);
 
     return res.json({
@@ -110,14 +86,6 @@ export async function forgotPasswordController(req: Request, res: Response) {
 export async function resetPasswordController(req: Request, res: Response) {
   try {
     const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "token và newPassword là bắt buộc",
-      });
-    }
-
     await resetPassword(token, newPassword);
 
     return res.json({
@@ -153,14 +121,8 @@ export async function changePasswordController(req: AuthRequest, res: Response) 
     }
 
     const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "currentPassword và newPassword là bắt buộc",
-      });
-    }
-
     await changePassword(req.user.userId, currentPassword, newPassword);
+
     return res.json({
       success: true,
       message: "Đổi mật khẩu thành công",

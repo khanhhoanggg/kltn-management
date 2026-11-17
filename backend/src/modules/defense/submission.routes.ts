@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  submitDefenseSchema,
+  supervisorEvaluateSchema,
+  facultyReviewSchema,
+} from "./submission.schema.js";
 import * as controller from "./submission.controller.js";
 
 const router = Router();
@@ -25,6 +31,7 @@ router.post(
   "/:thesisId/submit",
   authenticate,
   authorize("SINH_VIEN"),
+  validate(submitDefenseSchema),
   controller.submit,
 );
 
@@ -33,6 +40,7 @@ router.patch(
   "/:thesisId/supervisor-evaluate",
   authenticate,
   authorize("GVHD", "ADMIN", "GIAO_VU"),
+  validate(supervisorEvaluateSchema),
   controller.evaluateBySupervisor,
 );
 
@@ -41,6 +49,7 @@ router.patch(
   "/:thesisId/faculty-review",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(facultyReviewSchema),
   controller.reviewByFaculty,
 );
 

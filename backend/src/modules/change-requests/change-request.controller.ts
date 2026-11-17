@@ -32,13 +32,6 @@ export async function createRequest(req: AuthRequest, res: Response) {
       fileUrl,
     } = req.body;
 
-    if (!thesisId || !changeType || !reason) {
-      return res.status(400).json({
-        success: false,
-        message: "thesisId, changeType và reason là bắt buộc",
-      });
-    }
-
     const data = await service.createChangeRequest(
       req.user.userId,
       studentId,
@@ -88,13 +81,6 @@ export async function reviewRequest(req: AuthRequest, res: Response) {
 
     const id = Number(req.params.id);
     const { status, responseNote } = req.body;
-
-    if (!status || !["APPROVED", "REJECTED"].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "status phải là APPROVED hoặc REJECTED",
-      });
-    }
 
     const data = await service.reviewChangeRequest(id, req.user.userId, {
       status,
