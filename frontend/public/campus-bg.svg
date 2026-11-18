@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="40%" stop-color="#bae6fd"/>
+      <stop offset="100%" stop-color="#e0f2fe"/>
+    </linearGradient>
+    <linearGradient id="buildingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="50%" stop-color="#e2e8f0"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+    <linearGradient id="buildingSide" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+    <linearGradient id="treeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#15803d"/>
+      <stop offset="100%" stop-color="#14532d"/>
+    </linearGradient>
+    <linearGradient id="treeGradLight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#166534"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1920" height="1080" fill="url(#skyGrad)"/>
+
+  <!-- University Building (Campus Architecture) -->
+  <g id="campus-building">
+    <!-- Center High-rise Tower -->
+    <polygon points="760,100 1160,100 1160,1080 760,1080" fill="url(#buildingGrad)"/>
+    <polygon points="1160,100 1260,160 1260,1080 1160,1080" fill="url(#buildingSide)"/>
+
+    <!-- Windows Tower Grid -->
+    <g fill="#0284c7" opacity="0.45">
+      <!-- Floor lines & Window blocks -->
+      <rect x="800" y="160" width="60" height="40" rx="4"/>
+      <rect x="880" y="160" width="60" height="40" rx="4"/>
+      <rect x="960" y="160" width="60" height="40" rx="4"/>
+      <rect x="1040" y="160" width="60" height="40" rx="4"/>
+
+      <rect x="800" y="240" width="60" height="40" rx="4"/>
+      <rect x="880" y="240" width="60" height="40" rx="4"/>
+      <rect x="960" y="240" width="60" height="40" rx="4"/>
+      <rect x="1040" y="240" width="60" height="40" rx="4"/>
+
+      <rect x="800" y="320" width="60" height="40" rx="4"/>
+      <rect x="880" y="320" width="60" height="40" rx="4"/>
+      <rect x="960" y="320" width="60" height="40" rx="4"/>
+      <rect x="1040" y="320" width="60" height="40" rx="4"/>
+
+      <rect x="800" y="400" width="60" height="40" rx="4"/>
+      <rect x="880" y="400" width="60" height="40" rx="4"/>
+      <rect x="960" y="400" width="60" height="40" rx="4"/>
+      <rect x="1040" y="400" width="60" height="40" rx="4"/>
+
+      <rect x="800" y="480" width="60" height="40" rx="4"/>
+      <rect x="880" y="480" width="60" height="40" rx="4"/>
+      <rect x="960" y="480" width="60" height="40" rx="4"/>
+      <rect x="1040" y="480" width="60" height="40" rx="4"/>
+
+      <rect x="800" y="560" width="60" height="40" rx="4"/>
+      <rect x="880" y="560" width="60" height="40" rx="4"/>
+      <rect x="960" y="560" width="60" height="40" rx="4"/>
+      <rect x="1040" y="560" width="60" height="40" rx="4"/>
+
+      <rect x="800" y="640" width="60" height="40" rx="4"/>
+      <rect x="880" y="640" width="60" height="40" rx="4"/>
+      <rect x="960" y="640" width="60" height="40" rx="4"/>
+      <rect x="1040" y="640" width="60" height="40" rx="4"/>
+    </g>
+
+    <!-- Side Wing Left -->
+    <polygon points="340,300 760,250 760,1080 340,1080" fill="#f1f5f9"/>
+    <!-- Side Wing Right -->
+    <polygon points="1260,280 1680,340 1680,1080 1260,1080" fill="#cbd5e1"/>
+  </g>
+
+  <!-- Green Campus Trees (Lush Canopy Foreground) -->
+  <g id="campus-trees">
+    <!-- Bottom forest canopy -->
+    <circle cx="200" cy="950" r="260" fill="url(#treeGrad)"/>
+    <circle cx="450" cy="920" r="220" fill="url(#treeGradLight)"/>
+    <circle cx="700" cy="980" r="240" fill="url(#treeGrad)"/>
+    <circle cx="950" cy="930" r="200" fill="url(#treeGradLight)"/>
+    <circle cx="1200" cy="960" r="230" fill="url(#treeGrad)"/>
+    <circle cx="1450" cy="920" r="220" fill="url(#treeGradLight)"/>
+    <circle cx="1750" cy="950" r="260" fill="url(#treeGrad)"/>
+
+    <!-- Left lush canopy -->
+    <circle cx="120" cy="650" r="180" fill="url(#treeGrad)"/>
+    <circle cx="240" cy="720" r="160" fill="url(#treeGradLight)"/>
+    <circle cx="80" cy="450" r="140" fill="url(#treeGrad)"/>
+
+    <!-- Right lush canopy -->
+    <circle cx="1800" cy="650" r="180" fill="url(#treeGrad)"/>
+    <circle cx="1680" cy="720" r="160" fill="url(#treeGradLight)"/>
+    <circle cx="1840" cy="450" r="140" fill="url(#treeGrad)"/>
+  </g>
+</svg>
