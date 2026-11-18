@@ -141,6 +141,20 @@ export async function confirmLog(req: AuthRequest, res: Response) {
   }
 }
 
+export async function submitWeeklyReport(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ success: false, message: "Chưa xác thực" });
+    const studentId = await getStudentIdOfUser(req.user.userId);
+    if (!studentId) return res.status(403).json({ success: false, message: "Chỉ sinh viên mới được gửi báo cáo tuần" });
+    const { report, progressPercentage } = req.body;
+    if (!report?.trim()) return res.status(400).json({ success: false, message: "Nội dung báo cáo là bắt buộc" });
+    const data = await service.submitWeeklyReport(Number(req.params.thesisId), studentId, report, progressPercentage === undefined ? undefined : Number(progressPercentage));
+    return res.status(201).json({ success: true, message: "Đã gửi báo cáo tuần cho GVHD", data });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error instanceof Error ? error.message : "Lỗi gửi báo cáo tuần" });
+  }
+}
+
 export async function removeLog(req: AuthRequest, res: Response) {
   try {
     if (!req.user) {

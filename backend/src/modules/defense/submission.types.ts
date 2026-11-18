@@ -1,6 +1,7 @@
 export type SubmitDefenseInput = {
   thesisId: number;
   reportFileUrl: string;
+  slideFileUrl?: string;
   sourceCodeUrl: string;
   plagiarismRate: number;
   plagiarismFileUrl?: string;

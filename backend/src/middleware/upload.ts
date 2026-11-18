@@ -34,6 +34,8 @@ const fileFilter = (
     ".pdf",
     ".doc",
     ".docx",
+    ".ppt",
+    ".pptx",
     ".xls",
     ".xlsx",
     ".zip",

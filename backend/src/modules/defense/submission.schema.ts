@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const submitDefenseSchema = z.object({
   reportFileUrl: z.string().trim().min(1, "Link file báo cáo toàn văn là bắt buộc"),
+  slideFileUrl: z.string().trim().optional(),
   sourceCodeUrl: z.string().trim().min(1, "Link mã nguồn (GitHub/GitLab) là bắt buộc"),
   plagiarismRate: z.coerce
     .number({ message: "Tỷ lệ đạo văn phải là số" })

@@ -134,6 +134,33 @@ export async function confirmLogByStudent(
   });
 }
 
+/** Sinh viên gửi báo cáo tiến độ tuần để GVHD theo dõi. */
+export async function submitWeeklyReport(
+  thesisId: number,
+  studentId: number,
+  report: string,
+  progressPercentage?: number,
+) {
+  const thesis = await prisma.thesis.findUnique({ where: { id: thesisId } });
+  if (!thesis) throw new Error("Không tìm thấy đề tài");
+  if (thesis.studentId !== studentId) throw new Error("Bạn không có quyền gửi báo cáo cho đề tài này");
+  if (["CHUA_DANG_KY", "CHO_GVHD_XAC_NHAN", "CHO_KHOA_GIAO"].includes(thesis.status)) {
+    throw new Error("Đề tài chưa được Khoa phê duyệt thực hiện");
+  }
+
+  return prisma.supervisionLog.create({
+    data: {
+      thesisId,
+      meetingDate: new Date(),
+      content: "Báo cáo tiến độ tuần do sinh viên gửi",
+      studentNotes: report.trim(),
+      isConfirmedByStudent: true,
+      confirmedAt: new Date(),
+      progressPercentage: progressPercentage === undefined ? null : Math.max(0, Math.min(100, progressPercentage)),
+    },
+  });
+}
+
 export async function deleteLog(id: number, lecturerId: number | null) {
   const log = await prisma.supervisionLog.findUnique({
     where: { id },

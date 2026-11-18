@@ -402,6 +402,7 @@ model DefenseSubmission {
   id                    Int              @id @default(autoincrement())
   thesisId              Int              @unique
   reportFileUrl         String // File báo cáo khóa luận toàn văn
+  slideFileUrl          String? // File trình chiếu bảo vệ
   sourceCodeUrl         String // Link github/gitlab
   plagiarismRate        Float // Tỷ lệ trùng lặp đạo văn (Turnitin/DoIT %)
   plagiarismFileUrl     String? // File báo cáo kiểm tra đạo văn

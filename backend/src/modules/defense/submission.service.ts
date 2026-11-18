@@ -59,6 +59,7 @@ export async function submitDefense(
       where: { thesisId },
       update: {
         reportFileUrl: input.reportFileUrl.trim(),
+        slideFileUrl: input.slideFileUrl?.trim() || null,
         sourceCodeUrl: input.sourceCodeUrl.trim(),
         plagiarismRate: input.plagiarismRate,
         plagiarismFileUrl: input.plagiarismFileUrl?.trim() || null,
@@ -67,6 +68,7 @@ export async function submitDefense(
       create: {
         thesisId,
         reportFileUrl: input.reportFileUrl.trim(),
+        slideFileUrl: input.slideFileUrl?.trim() || null,
         sourceCodeUrl: input.sourceCodeUrl.trim(),
         plagiarismRate: input.plagiarismRate,
         plagiarismFileUrl: input.plagiarismFileUrl?.trim() || null,

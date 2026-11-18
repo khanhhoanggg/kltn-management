@@ -13,9 +13,13 @@ export interface User {
   cohort?: string;
   major?: string;
   department?: string;
+  degree?: string;
+  staffCode?: string;
   phone?: string;
   gender?: string;
   idCard?: string;
+  student?: { id?: number; studentCode?: string; className?: string; cohort?: string; major?: string };
+  lecturer?: { id?: number; staffCode?: string; degree?: string; title?: string; department?: string };
 }
 
 interface AuthContextType {
@@ -69,6 +73,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         cohort: u.student?.cohort,
         major: u.student?.major,
         department: u.lecturer?.department,
+        degree: u.lecturer?.degree,
+        staffCode: u.lecturer?.staffCode,
+        student: u.student,
+        lecturer: u.lecturer,
         phone: u.phone,
       };
       setUser(formattedUser);
@@ -105,6 +113,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         studentCode: backendUser.student?.studentCode,
         className: backendUser.student?.className,
         department: backendUser.lecturer?.department,
+        degree: backendUser.lecturer?.degree,
+        staffCode: backendUser.lecturer?.staffCode,
+        student: backendUser.student,
+        lecturer: backendUser.lecturer,
         phone: backendUser.phone,
       };
 

@@ -29,12 +29,13 @@ export async function submit(req: AuthRequest, res: Response) {
     }
 
     const thesisId = Number(req.params.thesisId);
-    const { reportFileUrl, sourceCodeUrl, plagiarismRate, plagiarismFileUrl } =
+    const { reportFileUrl, slideFileUrl, sourceCodeUrl, plagiarismRate, plagiarismFileUrl } =
       req.body;
 
     const data = await service.submitDefense(thesisId, studentId, {
       thesisId,
       reportFileUrl,
+      slideFileUrl,
       sourceCodeUrl,
       plagiarismRate: Number(plagiarismRate),
       plagiarismFileUrl,

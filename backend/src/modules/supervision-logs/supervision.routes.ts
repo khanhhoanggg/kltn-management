@@ -12,6 +12,14 @@ router.get(
   controller.getLogsByThesis,
 );
 
+// Sinh viên gửi báo cáo tiến độ tuần cho GVHD
+router.post(
+  "/thesis/:thesisId/weekly-report",
+  authenticate,
+  authorize("SINH_VIEN"),
+  controller.submitWeeklyReport,
+);
+
 // Xem chi tiết 1 nhật ký
 router.get(
   "/:id",
