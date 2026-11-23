@@ -13,13 +13,6 @@ export async function createCouncil(req: AuthRequest, res: Response) {
   try {
     const { semesterId, code, name, defenseDate, location, members } = req.body;
 
-    if (!semesterId || !code || !name || !Array.isArray(members)) {
-      return res.status(400).json({
-        success: false,
-        message: "semesterId, code, name và members là bắt buộc",
-      });
-    }
-
     const data = await service.createCouncil({
       semesterId: Number(semesterId),
       code,
@@ -100,13 +93,6 @@ export async function assignThesis(req: AuthRequest, res: Response) {
     const councilId = Number(req.params.councilId);
     const { thesisId, orderNumber, scheduledTime } = req.body;
 
-    if (!thesisId) {
-      return res.status(400).json({
-        success: false,
-        message: "thesisId là bắt buộc",
-      });
-    }
-
     const data = await service.assignThesisToCouncil(councilId, {
       thesisId: Number(thesisId),
       orderNumber: orderNumber ? Number(orderNumber) : undefined,
@@ -142,13 +128,6 @@ export async function scoreAssignment(req: AuthRequest, res: Response) {
 
     const assignmentId = Number(req.params.assignmentId);
     const { score, comments } = req.body;
-
-    if (score === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "score (0-10) là bắt buộc",
-      });
-    }
 
     const data = await service.scoreByCouncilMember(
       assignmentId,

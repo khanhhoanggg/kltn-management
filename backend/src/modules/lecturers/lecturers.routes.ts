@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  createLecturerSchema,
+  updateLecturerSchema,
+} from "./lecturers.schema.js";
 import * as controller from "./lecturers.controller.js";
 
 const router = Router();
@@ -25,6 +30,7 @@ router.post(
   "/",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(createLecturerSchema),
   controller.create,
 );
 
@@ -32,6 +38,7 @@ router.put(
   "/:id",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(updateLecturerSchema),
   controller.update,
 );
 

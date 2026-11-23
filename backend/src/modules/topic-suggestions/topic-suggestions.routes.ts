@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  createTopicSuggestionSchema,
+  updateTopicSuggestionSchema,
+} from "./topic-suggestions.schema.js";
 import * as controller from "./topic-suggestions.controller.js";
 
 const router = Router();
@@ -13,6 +18,7 @@ router.post(
   "/",
   authenticate,
   authorize("GVHD", "ADMIN", "GIAO_VU"),
+  validate(createTopicSuggestionSchema),
   controller.create,
 );
 
@@ -21,6 +27,7 @@ router.put(
   "/:id",
   authenticate,
   authorize("GVHD", "ADMIN", "GIAO_VU"),
+  validate(updateTopicSuggestionSchema),
   controller.update,
 );
 

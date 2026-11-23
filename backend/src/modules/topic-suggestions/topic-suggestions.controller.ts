@@ -44,13 +44,6 @@ export async function create(req: AuthRequest, res: Response) {
     const { title, description, fieldId, semesterId, maxSlots, isPublished } =
       req.body;
 
-    if (!title) {
-      return res.status(400).json({
-        success: false,
-        message: "title là bắt buộc",
-      });
-    }
-
     const data = await service.createSuggestion(lecturerId, {
       title,
       description,

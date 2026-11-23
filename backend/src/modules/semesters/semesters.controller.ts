@@ -41,13 +41,6 @@ export async function create(req: Request, res: Response) {
   try {
     const { name, code, startDate, endDate, isActive } = req.body;
 
-    if (!name || !code || !startDate || !endDate) {
-      return res.status(400).json({
-        success: false,
-        message: "name, code, startDate, endDate là bắt buộc",
-      });
-    }
-
     const data = await semesterService.createSemester({
       name,
       code,

@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  createNotificationSchema,
+  createBulkNotificationSchema,
+} from "./notifications.schema.js";
 import * as controller from "./notifications.controller.js";
 
 const router = Router();
@@ -21,6 +26,7 @@ router.post(
   "/",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(createNotificationSchema),
   controller.create,
 );
 
@@ -28,6 +34,7 @@ router.post(
   "/bulk",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(createBulkNotificationSchema),
   controller.createBulk,
 );
 

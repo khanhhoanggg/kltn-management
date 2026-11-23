@@ -32,13 +32,6 @@ export async function submitMidterm(req: AuthRequest, res: Response) {
     const thesisId = Number(req.params.thesisId);
     const { reportFileUrl } = req.body;
 
-    if (!reportFileUrl) {
-      return res.status(400).json({
-        success: false,
-        message: "reportFileUrl là bắt buộc",
-      });
-    }
-
     const data = await service.submitMidtermReport(thesisId, studentId, {
       reportFileUrl,
     });
@@ -76,13 +69,6 @@ export async function evaluateMidterm(req: AuthRequest, res: Response) {
 
     const thesisId = Number(req.params.thesisId);
     const { result, comments } = req.body;
-
-    if (!result || !["DAT", "CANH_BAO", "KHONG_DAT"].includes(result)) {
-      return res.status(400).json({
-        success: false,
-        message: "result phải là DAT, CANH_BAO hoặc KHONG_DAT",
-      });
-    }
 
     const data = await service.evaluateMidterm(thesisId, lecturerId, {
       result,
@@ -138,13 +124,6 @@ export async function scheduleDemo(req: AuthRequest, res: Response) {
     const thesisId = Number(req.params.thesisId);
     const { demoDate, location } = req.body;
 
-    if (!demoDate) {
-      return res.status(400).json({
-        success: false,
-        message: "demoDate là bắt buộc",
-      });
-    }
-
     const data = await service.scheduleDemo(thesisId, lecturerId, {
       demoDate,
       location,
@@ -176,13 +155,6 @@ export async function evaluateDemo(req: AuthRequest, res: Response) {
 
     const thesisId = Number(req.params.thesisId);
     const { result, comments, canDefend, disqualifiedRecordUrl } = req.body;
-
-    if (!result || typeof canDefend !== "boolean") {
-      return res.status(400).json({
-        success: false,
-        message: "result (DAT|CANH_BAO|KHONG_DAT) và canDefend (boolean) là bắt buộc",
-      });
-    }
 
     const data = await service.evaluateDemo(thesisId, lecturerId, {
       result,

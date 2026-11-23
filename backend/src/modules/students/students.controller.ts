@@ -44,13 +44,6 @@ export async function create(req: Request, res: Response) {
     const { email, password, fullName, phone, studentCode, className, cohort, major } =
       req.body;
 
-    if (!email || !password || !fullName || !studentCode) {
-      return res.status(400).json({
-        success: false,
-        message: "email, password, fullName, studentCode là bắt buộc",
-      });
-    }
-
     const data = await studentService.createStudent({
       email,
       password,

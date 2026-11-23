@@ -1,6 +1,13 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  submitMidtermSchema,
+  evaluateMidtermSchema,
+  scheduleDemoSchema,
+  evaluateDemoSchema,
+} from "./evaluation.schema.js";
 import * as controller from "./evaluation.controller.js";
 
 const router = Router();
@@ -11,6 +18,7 @@ router.post(
   "/:thesisId/midterm/submit",
   authenticate,
   authorize("SINH_VIEN"),
+  validate(submitMidtermSchema),
   controller.submitMidterm,
 );
 
@@ -19,6 +27,7 @@ router.post(
   "/:thesisId/midterm/evaluate",
   authenticate,
   authorize("GVHD", "ADMIN", "GIAO_VU"),
+  validate(evaluateMidtermSchema),
   controller.evaluateMidterm,
 );
 
@@ -35,6 +44,7 @@ router.post(
   "/:thesisId/checkpoint/schedule",
   authenticate,
   authorize("GVHD", "ADMIN", "GIAO_VU"),
+  validate(scheduleDemoSchema),
   controller.scheduleDemo,
 );
 
@@ -43,6 +53,7 @@ router.post(
   "/:thesisId/checkpoint/evaluate",
   authenticate,
   authorize("GVHD", "ADMIN", "GIAO_VU"),
+  validate(evaluateDemoSchema),
   controller.evaluateDemo,
 );
 

@@ -46,13 +46,6 @@ export async function create(req: Request, res: Response) {
   try {
     const { name, description, isActive } = req.body;
 
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "name là bắt buộc",
-      });
-    }
-
     const data = await fieldService.createField({
       name,
       description,

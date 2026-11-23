@@ -51,13 +51,6 @@ export async function create(req: Request, res: Response) {
       maxStudents,
     } = req.body;
 
-    if (!email || !password || !fullName) {
-      return res.status(400).json({
-        success: false,
-        message: "email, password, fullName là bắt buộc",
-      });
-    }
-
     const data = await lecturerService.createLecturer({
       email,
       password,

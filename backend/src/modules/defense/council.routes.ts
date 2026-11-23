@@ -1,6 +1,14 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
+import {
+  createCouncilSchema,
+  updateCouncilSchema,
+  assignThesisToCouncilSchema,
+  memberScoreSchema,
+  finalizeMinuteSchema,
+} from "./council.schema.js";
 import * as controller from "./council.controller.js";
 
 const router = Router();
@@ -14,6 +22,7 @@ router.post(
   "/",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(createCouncilSchema),
   controller.createCouncil,
 );
 
@@ -21,6 +30,7 @@ router.put(
   "/:id",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(updateCouncilSchema),
   controller.updateCouncil,
 );
 
@@ -29,6 +39,7 @@ router.post(
   "/:councilId/theses",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(assignThesisToCouncilSchema),
   controller.assignThesis,
 );
 
@@ -37,6 +48,7 @@ router.post(
   "/assignments/:assignmentId/scores",
   authenticate,
   authorize("THANH_VIEN_HD", "GVHD", "ADMIN", "GIAO_VU"),
+  validate(memberScoreSchema),
   controller.scoreAssignment,
 );
 
@@ -45,6 +57,7 @@ router.patch(
   "/assignments/:assignmentId/finalize",
   authenticate,
   authorize("THU_KY_HD", "ADMIN", "GIAO_VU"),
+  validate(finalizeMinuteSchema),
   controller.finalizeMinute,
 );
 

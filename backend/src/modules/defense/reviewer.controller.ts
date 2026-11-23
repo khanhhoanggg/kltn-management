@@ -14,13 +14,6 @@ export async function assign(req: AuthRequest, res: Response) {
     const thesisId = Number(req.params.thesisId);
     const { reviewerId } = req.body;
 
-    if (!reviewerId) {
-      return res.status(400).json({
-        success: false,
-        message: "reviewerId là bắt buộc",
-      });
-    }
-
     const data = await service.assignReviewer(thesisId, {
       reviewerId: Number(reviewerId),
     });
@@ -59,19 +52,6 @@ export async function evaluate(req: AuthRequest, res: Response) {
 
     const thesisId = Number(req.params.thesisId);
     const { preliminaryNotes, detailedReview, decision, reviewerScore } = req.body;
-
-    if (
-      !detailedReview ||
-      !decision ||
-      !["CHO_BAO_VE", "KHONG_CHO_BAO_VE"].includes(decision) ||
-      reviewerScore === undefined
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "detailedReview, decision (CHO_BAO_VE|KHONG_CHO_BAO_VE) và reviewerScore (0-10) là bắt buộc",
-      });
-    }
 
     const data = await service.evaluateByReviewer(thesisId, lecturerId, {
       preliminaryNotes,

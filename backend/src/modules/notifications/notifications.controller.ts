@@ -46,13 +46,6 @@ export async function create(req: AuthRequest, res: Response) {
   try {
     const { userId, type, title, content, link } = req.body;
 
-    if (!userId || !title || !content) {
-      return res.status(400).json({
-        success: false,
-        message: "userId, title, content là bắt buộc",
-      });
-    }
-
     const data = await notificationService.createNotification({
       userId: Number(userId),
       type,
@@ -72,13 +65,6 @@ export async function create(req: AuthRequest, res: Response) {
 export async function createBulk(req: AuthRequest, res: Response) {
   try {
     const { userIds, type, title, content, link } = req.body;
-
-    if (!Array.isArray(userIds) || !title || !content) {
-      return res.status(400).json({
-        success: false,
-        message: "userIds (array), title, content là bắt buộc",
-      });
-    }
 
     const data = await notificationService.createBulkNotifications({
       userIds: userIds.map(Number),

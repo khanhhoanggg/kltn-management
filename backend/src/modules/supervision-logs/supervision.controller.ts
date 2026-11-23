@@ -64,13 +64,6 @@ export async function createLog(req: AuthRequest, res: Response) {
     const { thesisId, meetingDate, content, tasksAssigned, progressPercentage } =
       req.body;
 
-    if (!thesisId || !meetingDate || !content) {
-      return res.status(400).json({
-        success: false,
-        message: "thesisId, meetingDate và content là bắt buộc",
-      });
-    }
-
     const data = await service.createLog(
       {
         thesisId: Number(thesisId),
@@ -147,7 +140,6 @@ export async function submitWeeklyReport(req: AuthRequest, res: Response) {
     const studentId = await getStudentIdOfUser(req.user.userId);
     if (!studentId) return res.status(403).json({ success: false, message: "Chỉ sinh viên mới được gửi báo cáo tuần" });
     const { report, progressPercentage } = req.body;
-    if (!report?.trim()) return res.status(400).json({ success: false, message: "Nội dung báo cáo là bắt buộc" });
     const data = await service.submitWeeklyReport(Number(req.params.thesisId), studentId, report, progressPercentage === undefined ? undefined : Number(progressPercentage));
     return res.status(201).json({ success: true, message: "Đã gửi báo cáo tuần cho GVHD", data });
   } catch (error) {

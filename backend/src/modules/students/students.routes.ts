@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.js";
 import { authorize } from "../../middleware/role.js";
+import { validate } from "../../middleware/validate.js";
 import { uploadMiddleware } from "../../middleware/upload.js";
+import {
+  createStudentSchema,
+  updateStudentSchema,
+} from "./students.schema.js";
 import * as controller from "./students.controller.js";
 
 const router = Router();
@@ -35,6 +40,7 @@ router.post(
   "/",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(createStudentSchema),
   controller.create,
 );
 
@@ -42,6 +48,7 @@ router.put(
   "/:id",
   authenticate,
   authorize("ADMIN", "GIAO_VU"),
+  validate(updateStudentSchema),
   controller.update,
 );
 
