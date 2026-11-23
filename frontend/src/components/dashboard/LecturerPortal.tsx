@@ -8,12 +8,21 @@ import {
   api,
   ActiveField,
   ActiveSemester,
+  CouncilItem,
   Log,
+  ReviewerAssignmentItem,
   Suggestion,
   ThesisResponse,
 } from "../../lib/api";
 
-type LecturerTab = "theses" | "supervision" | "evaluations" | "defense" | "suggestions";
+type LecturerTab =
+  | "theses"
+  | "supervision"
+  | "evaluations"
+  | "defense"
+  | "reviewer"
+  | "councils"
+  | "suggestions";
 
 const statusText: Record<string, string> = {
   CHUA_DANG_KY: "Chưa đăng ký",
@@ -84,17 +93,25 @@ export function LecturerPortal() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [fields, setFields] = useState<ActiveField[]>([]);
   const [semester, setSemester] = useState<ActiveSemester | null>(null);
+  const [reviewerAssignments, setReviewerAssignments] = useState<ReviewerAssignmentItem[]>([]);
+  const [selectedReviewerId, setSelectedReviewerId] = useState<number | null>(null);
+  const [councils, setCouncils] = useState<CouncilItem[]>([]);
+  const [selectedCouncilId, setSelectedCouncilId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
   const selectedThesis = theses.find((t) => t.id === selectedThesisId) || theses[0] || null;
+  const selectedReviewerAssignment =
+    reviewerAssignments.find((r) => r.id === selectedReviewerId) || reviewerAssignments[0] || null;
 
   const loadData = async () => {
-    const [tRes, sRes, fRes, semRes] = await Promise.all([
+    const [tRes, sRes, fRes, semRes, revRes, counRes] = await Promise.all([
       api.theses.getAll(),
       api.suggestions.getAll(),
       api.fields.active(),
       api.semesters.active(),
+      api.defense.reviewers.getMyAssignments(),
+      api.defense.councils.getAll(),
     ]);
     if (tRes.data) {
       setTheses(tRes.data);
@@ -105,6 +122,18 @@ export function LecturerPortal() {
     if (sRes.data) setSuggestions(sRes.data);
     if (fRes.data) setFields(fRes.data);
     if (semRes.data) setSemester(semRes.data);
+    if (revRes.data) {
+      setReviewerAssignments(revRes.data);
+      if (!selectedReviewerId && revRes.data.length > 0) {
+        setSelectedReviewerId(revRes.data[0].id);
+      }
+    }
+    if (counRes.data) {
+      setCouncils(counRes.data);
+      if (!selectedCouncilId && counRes.data.length > 0) {
+        setSelectedCouncilId(counRes.data[0].id);
+      }
+    }
   };
 
   const loadLogs = async (id: number) => {
@@ -172,9 +201,13 @@ export function LecturerPortal() {
     if (!selectedThesis) return;
     setBusy(true);
     const data = new FormData(e.currentTarget);
+    const result = String(data.get("result"));
+    const comments = String(data.get("notes") || "");
+    const canDefend = result === "DAT";
     const res = await api.evaluations.evaluateDemo(selectedThesis.id, {
-      result: String(data.get("result")),
-      notes: String(data.get("notes") || ""),
+      result,
+      comments: comments || undefined,
+      canDefend,
     });
     notify(res, "Đã lưu đánh giá Checkpoint Demo (BM-03)");
     setBusy(false);
@@ -221,11 +254,55 @@ export function LecturerPortal() {
     if (res.success) loadData();
   };
 
-  const nav: { id: LecturerTab; label: string; icon: string }[] = [
-    { id: "theses", label: "Đề tài hướng dẫn", icon: "📚" },
+  const handleEvaluateReviewer = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedReviewerAssignment) return;
+    setBusy(true);
+    const fd = new FormData(e.currentTarget);
+    const res = await api.defense.reviewers.evaluate(selectedReviewerAssignment.thesisId, {
+      preliminaryNotes: String(fd.get("preliminaryNotes")) || undefined,
+      detailedReview: String(fd.get("detailedReview")),
+      decision: fd.get("decision") as "CHO_BAO_VE" | "KHONG_CHO_BAO_VE",
+      reviewerScore: Number(fd.get("reviewerScore")),
+    });
+    notify(res, "Đã lưu kết quả đánh giá phản biện (BM-06)");
+    if (res.success) loadData();
+    setBusy(false);
+  };
+
+  const handleScoreCouncil = async (assignmentId: number, e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setBusy(true);
+    const fd = new FormData(e.currentTarget);
+    const res = await api.defense.councils.score(assignmentId, {
+      score: Number(fd.get("score")),
+      comments: String(fd.get("comments")) || undefined,
+    });
+    notify(res, "Đã lưu điểm chấm Hội đồng (BM-07)");
+    if (res.success) loadData();
+    setBusy(false);
+  };
+
+  const handleFinalizeMinute = async (assignmentId: number, e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setBusy(true);
+    const fd = new FormData(e.currentTarget);
+    const res = await api.defense.councils.finalizeMinute(assignmentId, {
+      minuteNotes: String(fd.get("minuteNotes")) || undefined,
+      minuteFileUrl: String(fd.get("minuteFileUrl")) || undefined,
+    });
+    notify(res, "Đã lập biên bản & tính điểm tổng kết khóa luận!");
+    if (res.success) loadData();
+    setBusy(false);
+  };
+
+  const nav: { id: LecturerTab; label: string; icon: string; count?: number }[] = [
+    { id: "theses", label: "Đề tài hướng dẫn", icon: "📚", count: theses.length },
     { id: "supervision", label: "Nhật ký & Giao việc", icon: "📑" },
     { id: "evaluations", label: "Đánh giá GK & Demo", icon: "🎯" },
     { id: "defense", label: "Chấm điểm BV (BM-05)", icon: "🏆" },
+    { id: "reviewer", label: "Phản biện (BM-06)", icon: "⚖️", count: reviewerAssignments.length },
+    { id: "councils", label: "Hội đồng (BM-07/08)", icon: "🏛️", count: councils.length },
     { id: "suggestions", label: "Đề tài gợi ý", icon: "💡" },
   ];
 
@@ -743,7 +820,324 @@ export function LecturerPortal() {
             </div>
           )}
 
-          {/* TAB 5: ĐỀ TÀI GỢI Ý CỦA GIẢNG VIÊN */}
+          {/* TAB 5: ĐÁNH GIÁ PHẢN BIỆN (BM-06) */}
+          {tab === "reviewer" && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-2xl font-bold">Đánh giá Phản biện (BM-06)</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Xem hồ sơ và thực hiện đánh giá độc lập cho các đề tài bạn được phân công phản biện.
+                </p>
+              </div>
+
+              {reviewerAssignments.length === 0 ? (
+                <Card className="py-12 text-center text-slate-400">
+                  Bạn hiện chưa được phân công phản biện đề tài nào trong học kỳ này.
+                </Card>
+              ) : (
+                <div className="grid gap-5 lg:grid-cols-3">
+                  {/* Danh sách đề tài phản biện */}
+                  <div className="space-y-3 lg:col-span-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase">
+                      Đề tài phân công ({reviewerAssignments.length})
+                    </p>
+                    {reviewerAssignments.map((ra) => (
+                      <button
+                        key={ra.id}
+                        onClick={() => setSelectedReviewerId(ra.id)}
+                        className={`w-full text-left rounded-xl border p-4 transition ${
+                          selectedReviewerAssignment?.id === ra.id
+                            ? "border-sky-500 bg-sky-50/50 dark:bg-sky-950/20 shadow-sm"
+                            : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-[#10192e]"
+                        }`}
+                      >
+                        <p className="font-bold text-sm line-clamp-2">{ra.thesis?.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          SV: <b>{ra.thesis?.student?.user?.fullName}</b> ({ra.thesis?.student?.studentCode})
+                        </p>
+                        <div className="mt-2 flex items-center justify-between text-xs">
+                          <span className="text-slate-400">
+                            GVHD: {ra.thesis?.supervisor?.user?.fullName || "—"}
+                          </span>
+                          {ra.reviewerScore !== null && ra.reviewerScore !== undefined ? (
+                            <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded">
+                              {ra.reviewerScore} đ
+                            </span>
+                          ) : (
+                            <span className="text-amber-500 font-semibold">Chờ chấm</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Chi tiết & Form chấm điểm phản biện */}
+                  {selectedReviewerAssignment && (
+                    <div className="space-y-4 lg:col-span-2">
+                      <Card className="space-y-3">
+                        <div className="flex items-start justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                          <div>
+                            <span className="rounded bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                              #{selectedReviewerAssignment.thesisId}
+                            </span>
+                            <h3 className="font-bold text-base mt-1">
+                              {selectedReviewerAssignment.thesis?.title}
+                            </h3>
+                          </div>
+                          {selectedReviewerAssignment.decision && (
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                                selectedReviewerAssignment.decision === "CHO_BAO_VE"
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                  : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                              }`}
+                            >
+                              {selectedReviewerAssignment.decision === "CHO_BAO_VE"
+                                ? "ĐỦ ĐIỀU KIỆN BẢO VỆ"
+                                : "KHÔNG ĐƯỢC BẢO VỆ"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* File nộp của sinh viên */}
+                        {selectedReviewerAssignment.thesis?.defenseSubmission ? (
+                          <div className="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-900 flex items-center justify-between">
+                            <span>Tài liệu sinh viên đã nộp:</span>
+                            <div className="flex gap-3 font-semibold text-sky-600">
+                              <a
+                                href={selectedReviewerAssignment.thesis.defenseSubmission.reportFileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="hover:underline"
+                              >
+                                📄 Báo cáo toàn văn
+                              </a>
+                              {selectedReviewerAssignment.thesis.defenseSubmission.slideFileUrl && (
+                                <a
+                                  href={selectedReviewerAssignment.thesis.defenseSubmission.slideFileUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="hover:underline"
+                                >
+                                  📊 Slide bảo vệ
+                                </a>
+                              )}
+                              <a
+                                href={selectedReviewerAssignment.thesis.defenseSubmission.sourceCodeUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="hover:underline"
+                              >
+                                💻 Source Code
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-amber-500 italic">Sinh viên chưa nộp hồ sơ bảo vệ.</p>
+                        )}
+
+                        {/* Form chấm điểm */}
+                        <form onSubmit={handleEvaluateReviewer} className="space-y-4 pt-2">
+                          <div>
+                            <label className="text-xs font-semibold">Ghi chú sơ bộ / Nhận xét tổng quan</label>
+                            <Input
+                              name="preliminaryNotes"
+                              defaultValue={selectedReviewerAssignment.preliminaryNotes || ""}
+                              placeholder="Nhận xét sơ bộ về tính thực tiễn..."
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold">Nhận xét chi tiết phản biện (BM-06) *</label>
+                            <Textarea
+                              name="detailedReview"
+                              required
+                              rows={4}
+                              defaultValue={selectedReviewerAssignment.detailedReview || ""}
+                              placeholder="Đánh giá về tính mới, phương pháp nghiên cứu, kết quả đạt được, thiếu sót cần bổ sung..."
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-xs font-semibold">Quyết định bảo vệ *</label>
+                              <select
+                                name="decision"
+                                required
+                                defaultValue={selectedReviewerAssignment.decision || "CHO_BAO_VE"}
+                                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                              >
+                                <option value="CHO_BAO_VE">ĐỦ ĐIỀU KIỆN BẢO VỆ TRƯỚC HỘI ĐỒNG</option>
+                                <option value="KHONG_CHO_BAO_VE">KHÔNG ĐƯỢC BẢO VỆ</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="text-xs font-semibold">Điểm phản biện (0 - 10) *</label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="10"
+                                name="reviewerScore"
+                                required
+                                defaultValue={selectedReviewerAssignment.reviewerScore ?? 8.0}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="pt-2 text-right">
+                            <Button disabled={busy} type="submit">
+                              {selectedReviewerAssignment.reviewerScore !== null &&
+                              selectedReviewerAssignment.reviewerScore !== undefined
+                                ? "Cập nhật đánh giá phản biện"
+                                : "Lưu đánh giá phản biện (BM-06)"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Card>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 6: HỘI ĐỒNG BẢO VỆ (BM-07 & BM-08) */}
+          {tab === "councils" && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-2xl font-bold">Hội đồng bảo vệ KLTN (BM-07 & BM-08)</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Chấm điểm trong các phiên bảo vệ hội đồng và lập biên bản tổng kết (dành cho Thư ký).
+                </p>
+              </div>
+
+              {councils.length === 0 ? (
+                <Card className="py-12 text-center text-slate-400">
+                  Hiện chưa có Hội đồng bảo vệ nào được phân công.
+                </Card>
+              ) : (
+                <div className="space-y-6">
+                  {councils.map((c) => {
+                    const myRole = c.members.find(
+                      (m) => m.lecturer.user.email === user?.email,
+                    )?.role;
+
+                    return (
+                      <Card key={c.id} className="space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-800">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="rounded bg-sky-100 px-2 py-0.5 text-xs font-bold text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                                {c.code}
+                              </span>
+                              <h3 className="font-bold text-lg">{c.name}</h3>
+                              {myRole && (
+                                <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                                  Vai trò của bạn: {myRole === "CHU_TICH" ? "CHỦ TỊCH" : myRole === "THU_KY" ? "THƯ KÝ" : "ỦY VIÊN"}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Phòng: <b>{c.location || "Chưa xếp"}</b> · Ngày:{" "}
+                              <b>{c.defenseDate ? new Date(c.defenseDate).toLocaleDateString("vi-VN") : "Chưa có ngày"}</b>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Danh sách đề tài trong hội đồng */}
+                        <div className="space-y-4">
+                          <p className="text-xs font-bold text-slate-400 uppercase">
+                            Các đề tài bảo vệ trong phiên ({c.assignments?.length || 0})
+                          </p>
+                          {c.assignments && c.assignments.length > 0 ? (
+                            c.assignments.map((a) => (
+                              <div
+                                key={a.id}
+                                className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50 space-y-3"
+                              >
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div>
+                                    <span className="text-xs font-bold text-sky-600">
+                                      #{a.orderNumber || "—"} · Giờ: {a.scheduledTime || "Chưa đặt"}
+                                    </span>
+                                    <h4 className="font-bold text-base mt-0.5">{a.thesis.title}</h4>
+                                    <p className="text-xs text-slate-500">
+                                      SV: <b>{a.thesis.student?.user?.fullName}</b> ({a.thesis.student?.studentCode}) · GVHD:{" "}
+                                      {a.thesis.supervisor?.user?.fullName}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-xs text-slate-400">Điểm Hội đồng / Tổng kết</p>
+                                    <p className="text-lg font-bold text-emerald-600">
+                                      {a.councilScore ?? "—"} / {a.finalScore ?? "—"} đ
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                                  {/* Form Thành viên chấm điểm BM-07 */}
+                                  <form onSubmit={(e) => handleScoreCouncil(a.id, e)} className="space-y-2">
+                                    <p className="text-xs font-bold text-sky-600">Chấm điểm cá nhân (BM-07):</p>
+                                    <div className="flex gap-2">
+                                      <Input
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        max="10"
+                                        name="score"
+                                        required
+                                        placeholder="Điểm (0-10)"
+                                        className="w-32"
+                                      />
+                                      <Input
+                                        name="comments"
+                                        placeholder="Nhận xét câu hỏi / trả lời..."
+                                        className="flex-1"
+                                      />
+                                      <Button disabled={busy} type="submit" className="text-xs shrink-0">
+                                        Lưu điểm
+                                      </Button>
+                                    </div>
+                                  </form>
+
+                                  {/* Form Thư ký hoàn tất biên bản BM-08 */}
+                                  {(myRole === "THU_KY" || user?.roles?.includes("ADMIN") || user?.roles?.includes("GIAO_VU")) && (
+                                    <form onSubmit={(e) => handleFinalizeMinute(a.id, e)} className="space-y-2">
+                                      <p className="text-xs font-bold text-purple-600">Thư ký lập biên bản (BM-08):</p>
+                                      <div className="flex gap-2">
+                                        <Input
+                                          name="minuteNotes"
+                                          placeholder="Tóm tắt biên bản hội đồng..."
+                                          className="flex-1"
+                                        />
+                                        <Button
+                                          disabled={busy}
+                                          type="submit"
+                                          className="text-xs shrink-0 bg-purple-600 hover:bg-purple-700"
+                                        >
+                                          Tính điểm TK
+                                        </Button>
+                                      </div>
+                                    </form>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-xs text-slate-400 italic">Hội đồng này chưa được xếp đề tài nào.</p>
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 7: ĐỀ TÀI GỢI Ý CỦA GIẢNG VIÊN */}
           {tab === "suggestions" && (
             <div className="space-y-5">
               <div className="flex items-center justify-between">

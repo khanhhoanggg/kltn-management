@@ -631,11 +631,30 @@ function Defense({
   notify,
 }: DefenseProps) {
   const [submitting, setSubmitting] = useState(false);
+  const [submittingMidterm, setSubmittingMidterm] = useState(false);
 
   const uploadFile = async (file: File | null) => {
     if (!file || file.size === 0) return undefined;
     const res = await api.upload(file);
     return res.data?.fileUrl;
+  };
+
+  const handleMidtermSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!thesis) return;
+    setSubmittingMidterm(true);
+    const d = new FormData(e.currentTarget);
+    const file = d.get("midtermFile") as File;
+    const fileUrl = await uploadFile(file);
+    if (!fileUrl) {
+      notify({ success: false, message: "Vui lòng chọn file báo cáo giữa kỳ" });
+      setSubmittingMidterm(false);
+      return;
+    }
+    const res = await api.evaluations.submitMidterm(thesis.id, { reportFileUrl: fileUrl });
+    notify(res, "Đã nộp báo cáo tiến độ giữa kỳ!");
+    if (res.success) reload();
+    setSubmittingMidterm(false);
   };
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
@@ -678,13 +697,38 @@ function Defense({
         <>
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
-              <h3 className="font-bold">Đánh giá giữa kỳ</h3>
+              <h3 className="font-bold">Báo cáo & Đánh giá giữa kỳ (BM-03)</h3>
               <p className="mt-3 text-sm">
                 Kết quả: <b>{midterm?.result || "Chưa đánh giá"}</b>
               </p>
               <p className="mt-2 text-sm text-slate-500">
-                {midterm?.comments || "Chưa có nhận xét."}
+                {midterm?.comments || "Chưa có nhận xét của GVHD."}
               </p>
+              {midterm?.reportFileUrl && (
+                <div className="mt-2 text-xs">
+                  File đã nộp:{" "}
+                  <a
+                    href={midterm.reportFileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-bold text-sky-600 hover:underline"
+                  >
+                    Xem báo cáo giữa kỳ
+                  </a>
+                </div>
+              )}
+              <form onSubmit={handleMidtermSubmit} className="mt-3 flex items-center gap-2">
+                <input
+                  type="file"
+                  name="midtermFile"
+                  accept=".pdf,.doc,.docx"
+                  required
+                  className="text-xs flex-1 file:mr-2 file:rounded-md file:border-0 file:bg-sky-50 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-sky-700 dark:file:bg-sky-950 dark:file:text-sky-300"
+                />
+                <Button disabled={submittingMidterm} type="submit" className="text-xs py-1 px-2.5 shrink-0">
+                  Nộp báo cáo GK
+                </Button>
+              </form>
             </Card>
             <Card>
               <h3 className="font-bold">Checkpoint Demo</h3>
