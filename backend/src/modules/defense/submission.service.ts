@@ -152,7 +152,13 @@ export async function facultyReview(
 ) {
   const submission = await prisma.defenseSubmission.findUnique({
     where: { thesisId },
-    include: { thesis: true },
+    include: {
+      thesis: {
+        include: {
+          student: { include: { user: true } },
+        },
+      },
+    },
   });
 
   if (!submission) {
@@ -209,6 +215,29 @@ export async function facultyReview(
       where: { id: thesisId },
       data: { status: nextThesisStatus },
     });
+
+    // Tự động thông báo kết quả duyệt hồ sơ cho sinh viên
+    try {
+      await tx.notification.create({
+        data: {
+          userId: submission.thesis.student.userId,
+          type: "DEFENSE",
+          title:
+            input.facultyApprovalStatus === "DA_DUYET"
+              ? "Hồ sơ bảo vệ đã được phê duyệt"
+              : input.facultyApprovalStatus === "YEU_CAU_CHINH_SUA"
+                ? "Yêu cầu chỉnh sửa hồ sơ bảo vệ"
+                : "Hồ sơ bảo vệ không đủ điều kiện",
+          content:
+            input.facultyApprovalStatus === "DA_DUYET"
+              ? "Giáo vụ Khoa đã xác nhận bản cứng và duyệt hồ sơ bảo vệ KLTN/CĐTN của bạn. Hồ sơ được chuyển sang bước phân công Phản biện."
+              : `Giáo vụ Khoa có thông báo về hồ sơ bảo vệ của bạn: ${input.facultyNote || (input.facultyApprovalStatus === "YEU_CAU_CHINH_SUA" ? "Vui lòng cập nhật và nộp lại hồ sơ" : "Hồ sơ bị loại do vi phạm quy chế hoặc quá hạn")}`,
+          link: `/theses/${thesisId}`,
+        },
+      });
+    } catch (notifErr) {
+      console.error("Lỗi gửi thông báo duyệt hồ sơ:", notifErr);
+    }
 
     return updatedSubmission;
   });

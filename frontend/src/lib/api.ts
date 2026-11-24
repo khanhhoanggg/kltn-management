@@ -441,7 +441,10 @@ export const api = {
       request<ChangeRequestItem[]>(`/change-requests/thesis/${thesisId}`),
     create: (body: object) =>
       request("/change-requests", { method: "POST", body: JSON.stringify(body) }),
-    review: (id: number, body: { status: "DA_DUYET" | "TU_CHOI"; reviewNotes?: string }) =>
+    review: (
+      id: number,
+      body: { status: "APPROVED" | "REJECTED"; responseNote?: string },
+    ) =>
       request(`/change-requests/${id}/review`, {
         method: "PATCH",
         body: JSON.stringify(body),
@@ -517,17 +520,40 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
-    facultyApproval: (
+    facultyReview: (
       thesisId: number,
       body: {
-        facultyApprovalStatus: "DA_DUYET" | "TU_CHOI";
-        notes?: string;
+        hardCopyReceived: boolean;
+        facultyApprovalStatus: "DA_DUYET" | "YEU_CAU_CHINH_SUA" | "BI_LOAI";
+        facultyNote?: string;
       },
     ) =>
-      request(`/defense/submissions/${thesisId}/faculty-approval`, {
+      request(`/defense/submissions/${thesisId}/faculty-review`, {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
+    facultyApproval: (
+      thesisId: number,
+      body: {
+        hardCopyReceived?: boolean;
+        facultyApprovalStatus: "DA_DUYET" | "YEU_CAU_CHINH_SUA" | "BI_LOAI" | "TU_CHOI";
+        notes?: string;
+        facultyNote?: string;
+      },
+    ) => {
+      const status =
+        body.facultyApprovalStatus === "TU_CHOI"
+          ? "BI_LOAI"
+          : body.facultyApprovalStatus;
+      return request(`/defense/submissions/${thesisId}/faculty-review`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          hardCopyReceived: body.hardCopyReceived ?? true,
+          facultyApprovalStatus: status,
+          facultyNote: body.facultyNote || body.notes,
+        }),
+      });
+    },
     reviewers: {
       getMyAssignments: () =>
         request<ReviewerAssignmentItem[]>("/defense/reviewers/my-assignments"),

@@ -64,6 +64,23 @@ export async function createThesis(studentId: number, input: CreateThesisInput) 
     throw new Error("Sinh viên đã có hồ sơ trong học kỳ này");
   }
 
+  // Kiểm tra không trùng tên đề tài (UC-12 / Quy trình Bước 2b)
+  if (input.title?.trim()) {
+    const duplicateTitle = await prisma.thesis.findFirst({
+      where: {
+        title: {
+          equals: input.title.trim(),
+          mode: "insensitive",
+        },
+      },
+    });
+    if (duplicateTitle) {
+      throw new Error(
+        "Tên đề tài đã tồn tại trong hệ thống. Vui lòng chọn tên đề tài khác (Quy định: không trùng đề tài các khóa).",
+      );
+    }
+  }
+
   const semester = await prisma.semester.findUnique({
     where: { id: input.semesterId },
   });
@@ -213,7 +230,37 @@ export async function confirmBySupervisor(
   }
 
   if (input.accepted) {
-    return prisma.thesis.update({
+    // Kiểm tra định mức hướng dẫn tối đa 15 SV của GVHD (BR-02 / UC-13)
+    const lecturer = await prisma.lecturer.findUnique({
+      where: { id: lecturerId },
+    });
+    if (lecturer) {
+      const currentCount = await prisma.thesis.count({
+        where: {
+          supervisorId: lecturerId,
+          status: {
+            in: [
+              "CHO_KHOA_GIAO",
+              "DANG_THUC_HIEN",
+              "DA_DANH_GIA_GIUA_KY",
+              "DA_KIEM_TRA_DEMO",
+              "CHO_DUYET_HO_SO",
+              "CHO_PHAN_BIEN",
+              "DU_DIEU_KIEN_BAO_VE",
+              "DA_BAO_VE",
+              "DA_LUU_HO_SO",
+            ],
+          },
+        },
+      });
+      if (currentCount >= lecturer.maxStudents) {
+        throw new Error(
+          `Giảng viên đã nhận đủ số lượng sinh viên hướng dẫn (tối đa ${lecturer.maxStudents} SV theo quy định BR-02)`,
+        );
+      }
+    }
+
+    const updated = await prisma.thesis.update({
       where: { id },
       data: {
         supervisorId: lecturerId,
@@ -221,16 +268,50 @@ export async function confirmBySupervisor(
       },
       include: thesisInclude,
     });
+
+    // Tự động thông báo cho sinh viên
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: updated.student.user.id,
+          type: "THESIS_STATUS",
+          title: "Đề tài đã được GVHD chấp thuận",
+          content: `GVHD ${updated.supervisor?.user.fullName || ""} đã xác nhận đồng ý hướng dẫn đề tài "${updated.title || ""}". Hồ sơ đang chờ Khoa ra quyết định giao chính thức.`,
+          link: `/theses/${updated.id}`,
+        },
+      });
+    } catch (notifErr) {
+      console.error("Lỗi gửi thông báo GVHD duyệt:", notifErr);
+    }
+
+    return updated;
   }
 
   // Trả lại → về CHUA_DANG_KY để SV chỉnh
-  return prisma.thesis.update({
+  const updated = await prisma.thesis.update({
     where: { id },
     data: {
       status: "CHUA_DANG_KY",
     },
     include: thesisInclude,
   });
+
+  // Tự động thông báo cho sinh viên
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: updated.student.user.id,
+        type: "THESIS_STATUS",
+        title: "Yêu cầu chỉnh sửa đề cương đề tài",
+        content: `GVHD yêu cầu bạn chỉnh sửa lại đề cương chi tiết cho đề tài "${updated.title || ""}". Vui lòng cập nhật và gửi lại.`,
+        link: `/theses/${updated.id}`,
+      },
+    });
+  } catch (notifErr) {
+    console.error("Lỗi gửi thông báo GVHD từ chối:", notifErr);
+  }
+
+  return updated;
 }
 
 /** Khoa ban hành Quyết định giao đề tài + khóa (UC-14, BR-03) */
@@ -283,7 +364,7 @@ export async function assignByFaculty(id: number, input: AssignByFacultyInput) {
     );
   }
 
-  return prisma.thesis.update({
+  const updated = await prisma.thesis.update({
     where: { id },
     data: {
       supervisorId: input.supervisorId,
@@ -296,6 +377,37 @@ export async function assignByFaculty(id: number, input: AssignByFacultyInput) {
     },
     include: thesisInclude,
   });
+
+  // UC-16: Tự động gửi thông báo quyết định giao đề tài đến SV và GVHD
+  try {
+    // 1. Cho sinh viên
+    await prisma.notification.create({
+      data: {
+        userId: updated.student.user.id,
+        type: "ASSIGNMENT",
+        title: "Quyết định giao đề tài chính thức",
+        content: `Khoa CNTT đã ban hành Quyết định số ${updated.decisionCode} chính thức giao đề tài "${updated.title || ""}" cho bạn. GVHD: ${updated.supervisor?.user.fullName || ""}. Đề tài hiện đã được khóa thông tin theo quy định BR-03.`,
+        link: `/theses/${updated.id}`,
+      },
+    });
+
+    // 2. Cho GVHD
+    if (updated.supervisor?.user.id) {
+      await prisma.notification.create({
+        data: {
+          userId: updated.supervisor.user.id,
+          type: "ASSIGNMENT",
+          title: "Phân công hướng dẫn KLTN/CĐTN chính thức",
+          content: `Khoa CNTT đã ban hành Quyết định số ${updated.decisionCode} phân công bạn chính thức hướng dẫn sinh viên ${updated.student.user.fullName} (${updated.student.studentCode}) với đề tài "${updated.title || ""}".`,
+          link: `/theses/${updated.id}`,
+        },
+      });
+    }
+  } catch (notifErr) {
+    console.error("Lỗi gửi thông báo Quyết định giao đề tài:", notifErr);
+  }
+
+  return updated;
 }
 
 export async function deleteThesis(id: number) {

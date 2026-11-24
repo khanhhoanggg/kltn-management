@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import ThemeToggle from "../ThemeToggle";
+import ProfileModal from "../ProfileModal";
 import { useAuth } from "../../context/AuthContext";
 import {
   api,
@@ -106,6 +107,7 @@ export function AdminPortal() {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [selectedThesis, setSelectedThesis] = useState<ThesisResponse | null>(null);
   const [selectedCouncil, setSelectedCouncil] = useState<CouncilItem | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Form states
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -326,8 +328,9 @@ export function AdminPortal() {
     const notes = prompt(approved ? "Ghi chú duyệt (nếu có):" : "Lý do từ chối hồ sơ bảo vệ:");
     if (notes === null) return;
     const res = await api.defense.facultyApproval(thesisId, {
-      facultyApprovalStatus: approved ? "DA_DUYET" : "TU_CHOI",
-      notes: notes || undefined,
+      hardCopyReceived: true,
+      facultyApprovalStatus: approved ? "DA_DUYET" : "BI_LOAI",
+      facultyNote: notes || undefined,
     });
     if (res.success) {
       notify(approved ? "Đã duyệt hồ sơ bảo vệ!" : "Đã từ chối hồ sơ bảo vệ.");
@@ -341,7 +344,11 @@ export function AdminPortal() {
   const handleReviewChangeRequest = async (id: number, status: "DA_DUYET" | "TU_CHOI") => {
     const reviewNotes = prompt(status === "DA_DUYET" ? "Ghi chú duyệt:" : "Lý do từ chối:");
     if (reviewNotes === null) return;
-    const res = await api.changes.review(id, { status, reviewNotes: reviewNotes || undefined });
+    const backendStatus = status === "DA_DUYET" ? "APPROVED" : "REJECTED";
+    const res = await api.changes.review(id, {
+      status: backendStatus,
+      responseNote: reviewNotes || undefined,
+    });
     if (res.success) {
       notify(status === "DA_DUYET" ? "Đã duyệt yêu cầu thay đổi" : "Đã từ chối yêu cầu");
       loadData();
@@ -533,7 +540,14 @@ export function AdminPortal() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-200">{user?.fullName}</p>
-              <p className="text-[10px] text-sky-400">GIÁO VỤ / QUẢN TRỊ</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <button
+                  onClick={() => setShowProfile(true)}
+                  className="text-[10px] text-sky-400 hover:text-sky-300 underline cursor-pointer"
+                >
+                  Hồ sơ & Đổi MK
+                </button>
+              </div>
             </div>
             <button
               onClick={logout}
@@ -1722,6 +1736,8 @@ export function AdminPortal() {
           </div>
         </form>
       </Modal>
+
+      <ProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
     </div>
   );
 }

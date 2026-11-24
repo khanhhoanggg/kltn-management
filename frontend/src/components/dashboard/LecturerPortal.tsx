@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "../ThemeToggle";
+import ProfileModal from "../ProfileModal";
 import { useAuth } from "../../context/AuthContext";
 import {
   api,
@@ -99,6 +100,7 @@ export function LecturerPortal() {
   const [selectedCouncilId, setSelectedCouncilId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const selectedThesis = theses.find((t) => t.id === selectedThesisId) || theses[0] || null;
   const selectedReviewerAssignment =
@@ -334,15 +336,24 @@ export function LecturerPortal() {
             {user?.lecturer?.degree ? `${user.lecturer.degree} · ` : ""}
             {user?.lecturer?.staffCode || user?.email}
           </p>
-          <button
-            onClick={() => {
-              logout();
-              router.replace("/login");
-            }}
-            className="text-slate-300 hover:text-white"
-          >
-            Đăng xuất
-          </button>
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              onClick={() => setShowProfile(true)}
+              className="text-sky-300 hover:text-white underline cursor-pointer"
+            >
+              Hồ sơ & Đổi MK
+            </button>
+            <span className="text-slate-500">·</span>
+            <button
+              onClick={() => {
+                logout();
+                router.replace("/login");
+              }}
+              className="text-slate-300 hover:text-white cursor-pointer"
+            >
+              Đăng xuất
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -1211,6 +1222,8 @@ export function LecturerPortal() {
           )}
         </main>
       </div>
+
+      <ProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
     </div>
   );
 }

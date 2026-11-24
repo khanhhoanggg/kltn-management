@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "../ThemeToggle";
+import ProfileModal from "../ProfileModal";
+import TimelineStepper from "../TimelineStepper";
 import { useAuth } from "../../context/AuthContext";
 import {
   api,
@@ -126,6 +128,7 @@ export function StudentPortal() {
   const [formHtml, setFormHtml] = useState("");
   const [showRegister, setShowRegister] = useState(false);
   const [showChange, setShowChange] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const thesis = theses[0];
 
   const load = async () => {
@@ -206,16 +209,25 @@ export function StudentPortal() {
         </nav>
         <div className="border-t border-white/10 p-4 text-sm">
           <p className="font-semibold">{user?.fullName}</p>
-          <p className="mb-3 text-xs text-slate-400">{user?.student?.studentCode || user?.email}</p>
-          <button
-            onClick={() => {
-              logout();
-              router.replace("/login");
-            }}
-            className="text-slate-300 hover:text-white"
-          >
-            Đăng xuất
-          </button>
+          <p className="mb-2 text-xs text-slate-400">{user?.student?.studentCode || user?.email}</p>
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              onClick={() => setShowProfile(true)}
+              className="text-sky-300 hover:text-white underline cursor-pointer"
+            >
+              Hồ sơ & Đổi MK
+            </button>
+            <span className="text-slate-500">·</span>
+            <button
+              onClick={() => {
+                logout();
+                router.replace("/login");
+              }}
+              className="text-slate-300 hover:text-white cursor-pointer"
+            >
+              Đăng xuất
+            </button>
+          </div>
         </div>
       </aside>
       <div className="min-w-0 flex-1">
@@ -300,6 +312,8 @@ export function StudentPortal() {
           )}
         </main>
       </div>
+
+      <ProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
     </div>
   );
 }
@@ -377,6 +391,9 @@ function Internship({
           )}
         </div>
       </div>
+
+      {thesis && <TimelineStepper status={thesis.status} />}
+
       {thesis ? (
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-3">

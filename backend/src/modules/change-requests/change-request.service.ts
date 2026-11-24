@@ -175,7 +175,7 @@ export async function reviewChangeRequest(
       }
     }
 
-    return tx.thesisChangeRequest.update({
+    const updatedRequest = await tx.thesisChangeRequest.update({
       where: { id },
       data: {
         status: input.status,
@@ -189,5 +189,28 @@ export async function reviewChangeRequest(
         },
       },
     });
+
+    // Tự động thông báo cho người làm đơn
+    try {
+      await tx.notification.create({
+        data: {
+          userId: request.requestedById,
+          type: "THESIS_STATUS",
+          title:
+            input.status === "APPROVED"
+              ? "Yêu cầu thay đổi đã được chấp thuận"
+              : "Yêu cầu thay đổi bị từ chối",
+          content:
+            input.status === "APPROVED"
+              ? `Khoa CNTT đã phê duyệt đơn yêu cầu thay đổi đề tài/GVHD của bạn.${input.responseNote ? ` Ghi chú: ${input.responseNote}` : ""}`
+              : `Đơn yêu cầu thay đổi đề tài/GVHD của bạn đã bị từ chối.${input.responseNote ? ` Lý do: ${input.responseNote}` : ""}`,
+          link: `/theses/${request.thesisId}`,
+        },
+      });
+    } catch (notifErr) {
+      console.error("Lỗi gửi thông báo duyệt đơn thay đổi:", notifErr);
+    }
+
+    return updatedRequest;
   });
 }

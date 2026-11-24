@@ -147,7 +147,7 @@ export async function assignThesisToCouncil(
     );
   }
 
-  return prisma.councilThesisAssignment.create({
+  const assignment = await prisma.councilThesisAssignment.create({
     data: {
       councilId,
       thesisId: input.thesisId,
@@ -156,9 +156,26 @@ export async function assignThesisToCouncil(
     },
     include: {
       council: true,
-      thesis: true,
+      thesis: { include: { student: true } },
     },
   });
+
+  // Tự động thông báo lịch bảo vệ cho sinh viên
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: assignment.thesis.student.userId,
+        type: "DEFENSE",
+        title: "Lịch bảo vệ khóa luận trước Hội đồng",
+        content: `Đề tài của bạn đã được xếp vào ${assignment.council.name}. Thời gian: ${assignment.scheduledTime ? new Date(assignment.scheduledTime).toLocaleString("vi-VN") : "Theo lịch Hội đồng"}. Địa điểm: ${assignment.council.location || "Khoa CNTT"}.`,
+        link: `/theses/${input.thesisId}`,
+      },
+    });
+  } catch (notifErr) {
+    console.error("Lỗi gửi thông báo xếp lịch bảo vệ:", notifErr);
+  }
+
+  return assignment;
 }
 
 /**

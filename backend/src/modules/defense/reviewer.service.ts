@@ -57,7 +57,7 @@ export async function assignReviewer(
     throw new Error("Giảng viên phản biện không tồn tại trong hệ thống");
   }
 
-  return prisma.reviewerAssignment.upsert({
+  const assignment = await prisma.reviewerAssignment.upsert({
     where: { thesisId },
     update: {
       reviewerId: input.reviewerId,
@@ -69,6 +69,23 @@ export async function assignReviewer(
     },
     include: reviewerInclude,
   });
+
+  // Tự động thông báo cho giảng viên phản biện
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: reviewer.userId,
+        type: "ASSIGNMENT",
+        title: "Phân công phản biện KLTN/CĐTN",
+        content: `Khoa CNTT đã phân công bạn phản biện cho đề tài "${thesis.title || ""}". Vui lòng truy cập để xem tài liệu và nhập đánh giá BM-06.`,
+        link: `/theses/${thesisId}`,
+      },
+    });
+  } catch (notifErr) {
+    console.error("Lỗi gửi thông báo phân công phản biện:", notifErr);
+  }
+
+  return assignment;
 }
 
 /**
@@ -81,7 +98,13 @@ export async function evaluateByReviewer(
 ) {
   const assignment = await prisma.reviewerAssignment.findUnique({
     where: { thesisId },
-    include: { thesis: true },
+    include: {
+      thesis: {
+        include: {
+          student: true,
+        },
+      },
+    },
   });
 
   if (!assignment) {
@@ -119,6 +142,27 @@ export async function evaluateByReviewer(
       where: { id: thesisId },
       data: { status: nextStatus },
     });
+
+    // Tự động thông báo kết quả phản biện cho sinh viên
+    try {
+      await tx.notification.create({
+        data: {
+          userId: assignment.thesis.student.userId,
+          type: "EVALUATION",
+          title:
+            input.decision === "CHO_BAO_VE"
+              ? "Kết quả phản biện: ĐỦ ĐIỀU KIỆN BẢO VỆ"
+              : "Kết quả phản biện: KHÔNG CHO BẢO VỆ",
+          content:
+            input.decision === "CHO_BAO_VE"
+              ? `Giảng viên phản biện đã hoàn tất đánh giá BM-06 (Điểm: ${input.reviewerScore}). Bạn đã đủ điều kiện để tham gia bảo vệ trước Hội đồng.`
+              : `Giảng viên phản biện đã đánh giá không cho phép bảo vệ đề tài trước Hội đồng. Nhận xét: ${input.detailedReview}`,
+          link: `/theses/${thesisId}`,
+        },
+      });
+    } catch (notifErr) {
+      console.error("Lỗi gửi thông báo kết quả phản biện:", notifErr);
+    }
 
     return updated;
   });
