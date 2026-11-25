@@ -249,13 +249,25 @@ export interface ReviewerAssignmentItem {
 
 export interface DashboardStats {
   totalTheses: number;
-  kltnCount: number;
-  cdtnCount: number;
-  statusCounts: Record<string, number>;
-  midtermDat: number;
-  midtermCanhBao: number;
-  midtermKhongDat: number;
-  fields?: { id: number; name: string; _count: { theses: number } }[];
+  kltnCount?: number;
+  cdtnCount?: number;
+  statusCounts?: Record<string, number>;
+  midtermDat?: number;
+  midtermCanhBao?: number;
+  midtermKhongDat?: number;
+  byType?: { KLTN: number; CDTN: number };
+  byStatus?: Record<string, number>;
+  midterm?: { DAT: number; CANH_BAO: number; KHONG_DAT: number };
+  fields?: {
+    id?: number;
+    name?: string;
+    _count?: { theses: number };
+    fieldId?: number;
+    fieldName?: string;
+    thesisCount?: number;
+  }[];
+  completedDefenseCount?: number;
+  avgFinalScore?: number | null;
 }
 
 function getToken() {
@@ -282,6 +294,18 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   try {
     const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
     const json = await res.json().catch(() => ({}));
+    if (
+      res.status === 401 &&
+      token &&
+      !endpoint.startsWith("/auth/login") &&
+      typeof window !== "undefined"
+    ) {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      sessionStorage.removeItem("auth_token");
+      sessionStorage.removeItem("auth_user");
+      window.location.replace("/login");
+    }
     return res.ok
       ? { success: true, data: (json.data ?? json) as T, message: json.message }
       : {
@@ -403,7 +427,7 @@ export const api = {
       id: number,
       body: { supervisorId: number; decisionCode: string; decisionDate?: string },
     ) =>
-      request<ThesisResponse>(`/theses/${id}/assign-faculty`, {
+      request<ThesisResponse>(`/theses/${id}/assign`, {
         method: "PATCH",
         body: JSON.stringify(body),
       }),

@@ -392,7 +392,7 @@ function Internship({
         </div>
       </div>
 
-      {thesis && <TimelineStepper status={thesis.status} />}
+      <TimelineStepper status={thesis?.status || "CHUA_DANG_KY"} />
 
       {thesis ? (
         <Card>
@@ -551,15 +551,16 @@ function Progress({ thesis, logs, reload, notify }: ProgressProps) {
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!thesis) return;
+    const form = e.currentTarget;
     setSending(true);
-    const d = new FormData(e.currentTarget);
+    const d = new FormData(form);
     const res = await api.supervision.weeklyReport(thesis.id, {
       report: d.get("report"),
       progressPercentage: Number(d.get("progress")),
     });
     notify(res, "Đã gửi báo cáo tuần cho GVHD");
     if (res.success) {
-      e.currentTarget.reset();
+      form.reset();
       reload();
     }
     setSending(false);

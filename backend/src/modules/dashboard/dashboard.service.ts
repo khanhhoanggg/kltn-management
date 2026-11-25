@@ -61,6 +61,9 @@ export async function getDashboardStats(semesterId?: number) {
   });
 
   const fieldStats = fields.map((f) => ({
+    id: f.id,
+    name: f.name,
+    _count: { theses: f._count.theses },
     fieldId: f.id,
     fieldName: f.name,
     thesisCount: f._count.theses,
@@ -89,6 +92,12 @@ export async function getDashboardStats(semesterId?: number) {
 
   return {
     totalTheses,
+    kltnCount,
+    cdtnCount,
+    statusCounts,
+    midtermDat,
+    midtermCanhBao,
+    midtermKhongDat,
     byType: {
       KLTN: kltnCount,
       CDTN: cdtnCount,

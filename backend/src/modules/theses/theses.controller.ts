@@ -16,11 +16,32 @@ async function getLecturerIdOfUser(userId: number) {
 export async function getAll(req: AuthRequest, res: Response) {
   try {
     const { semesterId, status, studentId, supervisorId, type } = req.query;
+    const roles = req.user?.roles ?? [];
+    const isStaffOrLecturer = roles.some((r) =>
+      [
+        "ADMIN",
+        "GIAO_VU",
+        "LANH_DAO",
+        "GVHD",
+        "GVPB",
+        "THANH_VIEN_HD",
+        "THU_KY_HD",
+      ].includes(r),
+    );
+
+    let effectiveStudentId = studentId ? Number(studentId) : undefined;
+    if (!isStaffOrLecturer && roles.includes("SINH_VIEN") && req.user) {
+      const myStudentId = await getStudentIdOfUser(req.user.userId);
+      if (!myStudentId) {
+        return res.json({ success: true, data: [] });
+      }
+      effectiveStudentId = myStudentId;
+    }
 
     const data = await thesisService.getAllTheses({
       semesterId: semesterId ? Number(semesterId) : undefined,
       status: status as string | undefined,
-      studentId: studentId ? Number(studentId) : undefined,
+      studentId: effectiveStudentId,
       supervisorId: supervisorId ? Number(supervisorId) : undefined,
       type: type as string | undefined,
     });
@@ -42,6 +63,27 @@ export async function getById(req: AuthRequest, res: Response) {
       return res
         .status(404)
         .json({ success: false, message: "Không tìm thấy hồ sơ" });
+    }
+
+    const roles = req.user?.roles ?? [];
+    const isStaffOrLecturer = roles.some((r) =>
+      [
+        "ADMIN",
+        "GIAO_VU",
+        "LANH_DAO",
+        "GVHD",
+        "GVPB",
+        "THANH_VIEN_HD",
+        "THU_KY_HD",
+      ].includes(r),
+    );
+    if (!isStaffOrLecturer && roles.includes("SINH_VIEN") && req.user) {
+      const myStudentId = await getStudentIdOfUser(req.user.userId);
+      if (!myStudentId || data.studentId !== myStudentId) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Bạn không có quyền xem hồ sơ này" });
+      }
     }
 
     return res.json({ success: true, data });

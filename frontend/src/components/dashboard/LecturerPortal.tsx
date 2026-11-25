@@ -168,8 +168,9 @@ export function LecturerPortal() {
   const handleCreateLog = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedThesis) return;
+    const form = e.currentTarget;
     setBusy(true);
-    const data = new FormData(e.currentTarget);
+    const data = new FormData(form);
     const res = await api.supervision.createLog({
       thesisId: selectedThesis.id,
       meetingDate: String(data.get("meetingDate")),
@@ -179,7 +180,7 @@ export function LecturerPortal() {
     });
     notify(res, "Đã ghi nhận nhật ký hướng dẫn");
     if (res.success) {
-      e.currentTarget.reset();
+      form.reset();
       loadLogs(selectedThesis.id);
     }
     setBusy(false);
@@ -232,8 +233,9 @@ export function LecturerPortal() {
 
   const handleCreateSuggestion = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
     setBusy(true);
-    const data = new FormData(e.currentTarget);
+    const data = new FormData(form);
     const res = await api.suggestions.create({
       title: String(data.get("title")),
       description: String(data.get("description") || ""),
@@ -243,7 +245,7 @@ export function LecturerPortal() {
     });
     notify(res, "Đã công bố đề tài gợi ý mới");
     if (res.success) {
-      e.currentTarget.reset();
+      form.reset();
       loadData();
     }
     setBusy(false);

@@ -600,7 +600,7 @@ export function AdminPortal() {
                   <p className="text-xs text-slate-500 font-semibold uppercase">Tổng số đề tài</p>
                   <p className="mt-2 text-3xl font-extrabold text-sky-600">{stats?.totalTheses || 0}</p>
                   <p className="mt-1 text-xs text-slate-400">
-                    KLTN: <b>{stats?.kltnCount || 0}</b> · CĐTN: <b>{stats?.cdtnCount || 0}</b>
+                    KLTN: <b>{stats?.kltnCount ?? stats?.byType?.KLTN ?? 0}</b> · CĐTN: <b>{stats?.cdtnCount ?? stats?.byType?.CDTN ?? 0}</b>
                   </p>
                 </Card>
                 <Card>
@@ -627,15 +627,15 @@ export function AdminPortal() {
                   <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                     <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950/30">
                       <p className="text-xs text-emerald-600 font-semibold">Đạt yêu cầu</p>
-                      <p className="text-2xl font-bold text-emerald-700">{stats?.midtermDat || 0}</p>
+                      <p className="text-2xl font-bold text-emerald-700">{stats?.midtermDat ?? stats?.midterm?.DAT ?? 0}</p>
                     </div>
                     <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
                       <p className="text-xs text-amber-600 font-semibold">Cảnh báo</p>
-                      <p className="text-2xl font-bold text-amber-700">{stats?.midtermCanhBao || 0}</p>
+                      <p className="text-2xl font-bold text-amber-700">{stats?.midtermCanhBao ?? stats?.midterm?.CANH_BAO ?? 0}</p>
                     </div>
                     <div className="rounded-lg bg-rose-50 p-3 dark:bg-rose-950/30">
                       <p className="text-xs text-rose-600 font-semibold">Không đạt</p>
-                      <p className="text-2xl font-bold text-rose-700">{stats?.midtermKhongDat || 0}</p>
+                      <p className="text-2xl font-bold text-rose-700">{stats?.midtermKhongDat ?? stats?.midterm?.KHONG_DAT ?? 0}</p>
                     </div>
                   </div>
                 </Card>
@@ -644,12 +644,17 @@ export function AdminPortal() {
                   <h3 className="font-bold text-sm">Phân bổ theo Lĩnh vực nghiên cứu</h3>
                   <div className="mt-3 space-y-2 max-h-40 overflow-y-auto">
                     {stats?.fields && stats.fields.length > 0 ? (
-                      stats.fields.map((f) => (
-                        <div key={f.id} className="flex justify-between items-center text-xs p-2 rounded bg-slate-50 dark:bg-slate-900">
-                          <span className="font-medium truncate max-w-[200px]">{f.name}</span>
-                          <span className="font-bold text-sky-600">{f._count.theses} đề tài</span>
-                        </div>
-                      ))
+                      stats.fields.map((f, idx) => {
+                        const id = f.id ?? f.fieldId ?? idx;
+                        const name = f.name ?? f.fieldName ?? "Chưa phân loại";
+                        const count = f._count?.theses ?? f.thesisCount ?? 0;
+                        return (
+                          <div key={id} className="flex justify-between items-center text-xs p-2 rounded bg-slate-50 dark:bg-slate-900">
+                            <span className="font-medium truncate max-w-[200px]">{name}</span>
+                            <span className="font-bold text-sky-600">{count} đề tài</span>
+                          </div>
+                        );
+                      })
                     ) : (
                       <p className="text-xs text-slate-400">Chưa có dữ liệu</p>
                     )}
@@ -661,7 +666,7 @@ export function AdminPortal() {
               <Card>
                 <h3 className="font-bold text-sm">Thống kê theo Trạng thái hồ sơ</h3>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {Object.entries(stats?.statusCounts || {}).map(([st, count]) => (
+                  {Object.entries(stats?.statusCounts || stats?.byStatus || {}).map(([st, count]) => (
                     <div
                       key={st}
                       className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900"
@@ -752,7 +757,7 @@ export function AdminPortal() {
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               {/* 1. Duyệt đủ điều kiện nếu chưa duyệt */}
-                              {t.isEligible === undefined || t.isEligible === null ? (
+                              {!t.isEligible ? (
                                 <button
                                   onClick={() => handleSetEligibility(t.id, true)}
                                   className="rounded bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
@@ -763,16 +768,18 @@ export function AdminPortal() {
                               ) : null}
 
                               {/* 2. Khoa ra quyết định phân công GVHD */}
-                              <button
-                                onClick={() => {
-                                  setSelectedThesis(t);
-                                  setActiveModal("assignFaculty");
-                                }}
-                                className="rounded bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300"
-                                title="Ra quyết định phân công GVHD (UC-08)"
-                              >
-                                Gán GVHD
-                              </button>
+                              {t.status === "CHO_KHOA_GIAO" && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedThesis(t);
+                                    setActiveModal("assignFaculty");
+                                  }}
+                                  className="rounded bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-300"
+                                  title="Ra quyết định phân công GVHD (UC-08)"
+                                >
+                                  Gán GVHD
+                                </button>
+                              )}
 
                               {/* 3. Duyệt hồ sơ bảo vệ nếu ở trạng thái chờ duyệt */}
                               {t.status === "CHO_DUYET_HO_SO" && (
@@ -786,16 +793,18 @@ export function AdminPortal() {
                               )}
 
                               {/* 4. Phân công phản biện */}
-                              <button
-                                onClick={() => {
-                                  setSelectedThesis(t);
-                                  setActiveModal("assignReviewer");
-                                }}
-                                className="rounded bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
-                                title="Phân công Giảng viên phản biện (UC-26)"
-                              >
-                                Gán GVPB
-                              </button>
+                              {t.status === "CHO_PHAN_BIEN" && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedThesis(t);
+                                    setActiveModal("assignReviewer");
+                                  }}
+                                  className="rounded bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
+                                  title="Phân công Giảng viên phản biện (UC-26)"
+                                >
+                                  Gán GVPB
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
