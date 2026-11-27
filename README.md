@@ -12,7 +12,6 @@
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
 - [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
 - [Hướng dẫn cài đặt & chạy dự án](#hướng-dẫn-cài-đặt--chạy-dự-án)
-- [Tài khoản mẫu (Seed)](#tài-khoản-mẫu-seed)
 - [API Endpoints chính](#api-endpoints-chính)
 
 ---
@@ -209,17 +208,6 @@ Truy cập ứng dụng tại: `http://localhost:3000`
 
 ---
 
-## Tài khoản mẫu (Seed)
-
-Sau khi chạy `npx prisma db seed`, hệ thống tạo sẵn học kỳ `SEM2026_HK1`, các lĩnh vực nghiên cứu và 3 tài khoản dùng để kiểm thử:
-
-| Vai trò | Email | Mật khẩu |
-| :--- | :--- | :--- |
-| Admin (`ADMIN`) | `admin@kltn.edu.vn` | `Admin@123` |
-| Giảng viên (`GVHD`) | `gvhd@kltn.edu.vn` | `Gvhd@123` |
-| Sinh viên (`SINH_VIEN`) | `student@kltn.edu.vn` | `Student@123` |
-
----
 
 ## API Endpoints chính
 
